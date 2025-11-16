@@ -1,0 +1,7 @@
+{
+  "name": "Gerador de Marketingboard com IA - 13-11",
+  "description": "Gere um marketingboard completo para qualquer empresa simplesmente fornecendo a URL do site. Utiliza IA com análise OSINT profunda para criar estratégia de marca, identidade verbal, identidade visual e muito mais. Também inclui um poderoso editor de imagens com IA.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
