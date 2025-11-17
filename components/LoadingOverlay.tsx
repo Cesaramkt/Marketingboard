@@ -49,8 +49,8 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ message, streami
 
         const lines = streamingText.split('\n');
         const steps = lines
-            .filter(line => line.startsWith('THINKING:'))
-            .map(line => line.replace('THINKING:', '').trim())
+            .filter(line => line.startsWith('PENSAMENTO:'))
+            .map(line => line.replace('PENSAMENTO:', '').trim())
             .filter(step => step.length > 0);
         
         setThinkingSteps(steps);

@@ -244,26 +244,26 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
         const hasComment = !!(comments[topicKey] || '').trim();
 
         return (
-            <div key={topicKey} className={`relative mb-8 p-4 rounded-xl transition-all duration-300 ${isApproved ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} border`}>
+            <div key={topicKey} className={`relative mb-8 p-6 rounded-xl transition-all duration-300 ${isApproved ? 'bg-green-500/10 border-green-500/20' : 'bg-slate-800 border-slate-700'} border`}>
                 {isRefining && (
-                    <div className="absolute inset-0 bg-white/70 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
+                    <div className="absolute inset-0 bg-slate-800/70 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
                         <div className="flex flex-col items-center">
-                            <SpinnerIcon className="h-6 w-6 text-purple-500" />
-                            <p className="text-sm text-purple-600 mt-2 font-medium">Ajustando com base na sua aprovação...</p>
+                            <SpinnerIcon className="h-6 w-6 text-purple-400" />
+                            <p className="text-sm text-purple-300 mt-2 font-medium">Ajustando com base na sua aprovação...</p>
                         </div>
                     </div>
                 )}
-                <h2 className="text-xl font-semibold text-purple-700">{topicInfo.label}</h2>
-                <p className="text-sm text-gray-500 mb-3">{topicInfo.description}</p>
-                <div className="prose max-w-none text-gray-800 leading-relaxed mb-4">
+                <h2 className="text-xl font-semibold text-purple-400">{topicInfo.label}</h2>
+                <p className="text-sm text-slate-400 mb-4">{topicInfo.description}</p>
+                <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed mb-4">
                     {contentRenderer()}
                 </div>
-                <div className="mt-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <div className="mt-4 bg-slate-700/50 p-3 rounded-lg border border-slate-600">
                      <textarea
                         placeholder="Gostou, mas quer ajustar? Deixe um comentário para a IA..."
                         value={comments[topicKey] || ''}
                         onChange={(e) => handleCommentChange(topicKey, e.target.value)}
-                        className="w-full text-sm bg-white p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-400"
+                        className="w-full text-sm bg-slate-700 text-slate-200 p-2 rounded-md border border-slate-500 focus:ring-2 focus:ring-purple-500"
                         rows={2}
                         disabled={isRegenerating}
                     />
@@ -272,7 +272,7 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
                             onClick={() => handleRegenerate(`part${stepNumber}.${topicKey}`, topicKey, editableData[topicKey])}
                             disabled={isRegenerating || !hasComment}
                             title={!hasComment ? "Deixe um comentário para ativar a reescrita" : "Reescrever usando seu comentário como guia"}
-                            className="flex items-center gap-2 text-sm bg-violet-100 text-violet-700 font-semibold py-2 px-4 rounded-lg hover:bg-violet-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 text-sm bg-violet-500/20 text-violet-300 font-semibold py-2 px-4 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isRegenerating ? <><SpinnerIcon className="h-4 w-4" />Reescrevendo...</> : 'Reescrever com IA'}
                         </button>
@@ -281,7 +281,7 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
                             className={`flex items-center gap-2 text-sm font-semibold py-2 px-4 rounded-lg transition-colors ${
                                 isApproved
                                 ? 'bg-green-600 text-white hover:bg-green-700'
-                                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                                : 'bg-slate-600 hover:bg-slate-500 text-slate-100'
                             }`}
                         >
                              {isApproved ? <><CheckCircleIcon className="h-5 w-5" /> Aprovado</> : 'Aprovar'}
@@ -320,22 +320,22 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
                     {renderTopic('audienceAndPositioning', () => (<div className="space-y-4">
                         <div>
                             <h4 className="font-semibold">Público-Alvo Principal:</h4>
-                            <p className="text-xs text-gray-500 mb-1">Quem é o cliente ideal? (Demografia, Dores, Necessidades, Desejos)</p>
+                            <p className="text-xs text-slate-500 mb-1">Quem é o cliente ideal? (Demografia, Dores, Necessidades, Desejos)</p>
                             <p>{editableData.audienceAndPositioning?.targetAudience || '...'}</p>
                         </div>
                         <div>
                             <h4 className="font-semibold">Concorrentes (Principais 3):</h4>
-                            <p className="text-xs text-gray-500 mb-1">Quem são? O que eles fazem bem? Onde eles falham?</p>
+                            <p className="text-xs text-slate-500 mb-1">Quem são? O que eles fazem bem? Onde eles falham?</p>
                             <ul className="list-disc pl-5 space-y-1">{ensureArray(editableData.audienceAndPositioning?.competitors).map((c, i) => <li key={i}>{c || '...'}</li>)}</ul>
                         </div>
                         <div>
                             <h4 className="font-semibold">Diferenciais Competitivos (Proposta de Valor Única):</h4>
-                            <p className="text-xs text-gray-500 mb-1">O que nos torna diferentes? Por que um cliente deveria nos escolher em vez do concorrente?</p>
+                            <p className="text-xs text-slate-500 mb-1">O que nos torna diferentes? Por que um cliente deveria nos escolher em vez do concorrente?</p>
                             <ul className="list-disc pl-5 space-y-1">{ensureArray(editableData.audienceAndPositioning?.differentiators).map((d, i) => <li key={i}>{d || '...'}</li>)}</ul>
                         </div>
                         <div>
                             <h4 className="font-semibold">Declaração de Posicionamento (Resumo):</h4>
-                            <p className="text-xs text-gray-500 mb-1">(Ex: "Para microempreendedores de e-commerce, a 'Embala Rápido' é a fornecedora de caixas que oferece a entrega mais veloz, porque temos estoque local e um sistema de logística próprio.")</p>
+                            <p className="text-xs text-slate-500 mb-1">(Ex: "Para microempreendedores de e-commerce, a 'Embala Rápido' é a fornecedora de caixas que oferece a entrega mais veloz, porque temos estoque local e um sistema de logística próprio.")</p>
                             <p className="italic">"{editableData.audienceAndPositioning?.positioningStatement || '...'}"</p>
                         </div>
                     </div>))}
@@ -387,23 +387,23 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
                     {renderTopic('logo', () => (
                       <>
                         <p>{editableData.logo?.description}</p>
-                        <div className="my-6 p-4 bg-white rounded-lg shadow-inner text-center border border-gray-200">
-                            <h3 className="text-lg font-semibold text-purple-600 mb-4">Logotipo Principal</h3>
+                        <div className="my-6 p-4 bg-slate-900/50 rounded-lg shadow-inner text-center border border-slate-700">
+                            <h3 className="text-lg font-semibold text-purple-400 mb-4">Logotipo Principal</h3>
                             {isGeneratingLogo ? (
-                                <div className="flex justify-center items-center h-32"><SpinnerIcon className="h-8 w-8 text-purple-500"/></div>
+                                <div className="flex justify-center items-center h-32"><SpinnerIcon className="h-8 w-8 text-purple-400"/></div>
                             ) : generatedLogo ? (
                                 <button onClick={() => setIsLogoModalVisible(true)} title="Clique para ampliar">
-                                    <img src={`data:image/png;base64,${generatedLogo}`} alt="Logotipo Gerado" className="max-h-32 mx-auto cursor-pointer hover:opacity-80 transition-opacity" />
+                                    <img src={`data:image/png;base64,${generatedLogo}`} alt="Logotipo Gerado" className="max-h-32 mx-auto cursor-pointer hover:opacity-80 transition-opacity bg-white/10 rounded p-1" />
                                 </button>
                             ) : validationData.uploadedLogoAnalysis ? (
-                                <img src={validationData.generatedLogo} alt="Logotipo da Empresa" className="max-h-24 bg-white p-2 rounded-md mx-auto shadow"/>
+                                <img src={validationData.generatedLogo} alt="Logotipo da Empresa" className="max-h-24 bg-white/90 p-2 rounded-md mx-auto shadow"/>
                             ) : validationData.logoUrl ? (
-                                <img src={validationData.logoUrl} alt="Logotipo da Empresa" className="max-h-24 bg-white p-2 rounded-md mx-auto shadow"/>
+                                <img src={validationData.logoUrl} alt="Logotipo da Empresa" className="max-h-24 bg-white/90 p-2 rounded-md mx-auto shadow"/>
                             ) : (
-                                <p className="text-gray-500">O logo gerado aparecerá aqui.</p>
+                                <p className="text-slate-500">O logo gerado aparecerá aqui.</p>
                             )}
                              {!validationData.uploadedLogoAnalysis && (
-                                <button onClick={handleGenerateLogo} disabled={isGeneratingLogo} className="mt-4 bg-violet-500 hover:bg-violet-600 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition-all duration-300 transform hover:scale-105 disabled:bg-gray-400">
+                                <button onClick={handleGenerateLogo} disabled={isGeneratingLogo} className="mt-4 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition-all duration-300 transform hover:scale-105 disabled:bg-gray-500">
                                     {isGeneratingLogo ? "Gerando..." : (generatedLogo || validationData.logoUrl) ? "Gerar Outra Opção" : "Gerar Logo com IA"}
                                 </button>
                              )}
@@ -419,9 +419,9 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
                                 ...ensureArray(editableData.colorPalette?.highlights)
                             ].map((color: {name: string, hex: string}, i) => (
                                 <div key={i} className="text-center group">
-                                    <div className="w-20 h-20 rounded-full border-4 border-gray-200 shadow-md" style={{backgroundColor: color.hex}}></div>
+                                    <div className="w-20 h-20 rounded-full border-4 border-slate-600 shadow-md" style={{backgroundColor: color.hex}}></div>
                                     <p className="mt-2 font-semibold text-sm">{color.name}</p>
-                                    <p className="text-xs text-gray-500 uppercase">{color.hex}</p>
+                                    <p className="text-xs text-slate-500 uppercase">{color.hex}</p>
                                 </div>
                             ))}
                         </div>
@@ -430,21 +430,20 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
                         <div className="space-y-6">
                             {editableData.typography?.primary?.font && (
                                 <div>
-                                    <p className="text-4xl" style={{fontFamily: `'${editableData.typography.primary.font}', sans-serif`}}>Aa Bb Cc</p>
-                                    <p className="mt-1 font-semibold">{editableData.typography.primary.font}</p>
-                                    <p className="text-sm text-gray-500">{editableData.typography.primary.usage}</p>
+                                    <p className="text-4xl" style={{fontFamily: `'${editableData.typography.primary.font}', sans-serif`}}>{editableData.typography.primary.font}</p>
+                                    <p className="mt-1 font-semibold">{editableData.typography.primary.usage}</p>
                                 </div>
                             )}
                             {editableData.typography?.secondary?.font && (
                                  <div>
                                     <p className="text-lg" style={{fontFamily: `'${editableData.typography.secondary.font}', serif`}}>O rápido cavalo marrom salta sobre o cão preguiçoso.</p>
                                     <p className="mt-1 font-semibold">{editableData.typography.secondary.font}</p>
-                                     <p className="text-sm text-gray-500">{editableData.typography.secondary.usage}</p>
+                                     <p className="text-sm text-slate-500">{editableData.typography.secondary.usage}</p>
                                 </div>
                             )}
                             {editableData.typography?.hierarchy && (
                                 <div>
-                                    <h4 className="font-semibold mt-4 text-gray-600">Hierarquia Sugerida:</h4>
+                                    <h4 className="font-semibold mt-4 text-slate-400">Hierarquia Sugerida:</h4>
                                     <p><strong>H1 (Título Principal):</strong> {editableData.typography.hierarchy.h1}</p>
                                     <p><strong>H2 (Subtítulo):</strong> {editableData.typography.hierarchy.h2}</p>
                                     <p><strong>Corpo de Texto:</strong> {editableData.typography.hierarchy.body}</p>
@@ -459,7 +458,7 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
                     <>
                     {renderTopic('personas', () => 
                         ensureArray(editableData.personas).map((p: any, i) => (
-                            <div key={i} className="mb-4 border-b pb-4 last:border-b-0">
+                            <div key={i} className="mb-4 border-b border-slate-700 pb-4 last:border-b-0">
                                 <h4 className="font-bold text-lg">{p.name}</h4>
                                 <p><strong>História:</strong> {p.story}</p>
                                 <p><strong>Dores/Desafios:</strong> {p.pains}</p>
@@ -480,7 +479,7 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
                     {renderTopic('channelMatrix', () => (
                         <div className="space-y-4">
                             {ensureArray(editableData.channelMatrix).map((c: any, i) => (
-                                <div key={i} className="p-3 bg-white rounded border">
+                                <div key={i} className="p-3 bg-slate-900/50 rounded border border-slate-700">
                                     <h4 className="font-bold">{c.channel}</h4>
                                     <p><strong>Propósito Principal:</strong> {c.mainPurpose}</p>
                                     <p><strong>Público:</strong> {c.audience}</p>
@@ -503,39 +502,41 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
                     <img src={`data:image/png;base64,${generatedLogo}`} alt="Logotipo Gerado Ampliado" className="max-w-[90vw] max-h-[90vh] object-contain" />
                 </div>
             )}
-            <div className="bg-white rounded-2xl p-6 sm:p-10 shadow-xl">
+            <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
-                    {stepNumber === 1 && <p className="text-lg text-gray-700 mt-2">Esta é a nossa fundação. É o "porquê" por trás do "o quê".</p>}
-                    <p className="text-gray-600 max-w-2xl mx-auto mt-2">Aprove cada tópico para continuar. Se precisar de ajustes, deixe um comentário e peça para a IA reescrever.</p>
+                    <h1 className="text-3xl font-bold text-slate-100 mb-2 font-['Playfair_Display',_serif]">{title}</h1>
+                    {stepNumber === 1 && <p className="text-lg text-slate-300 mt-2">Esta é a nossa fundação. É o "porquê" por trás do "o quê".</p>}
+                    <p className="text-slate-400 max-w-2xl mx-auto mt-2">Aprove cada tópico para continuar. Se precisar de ajustes, deixe um comentário e peça para a IA reescrever.</p>
                 </div>
 
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8">
+                <div className="mb-8">
                     {renderStepContent()}
                 </div>
                 
-                <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-6 rounded-lg shadow-sm transition-all duration-300 w-full sm:w-auto"
-                    >
-                        Voltar
-                    </button>
-                    {!allApproved && (
+                <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sticky bottom-6 z-20">
+                    <div className="bg-slate-800/80 backdrop-blur-sm p-3 rounded-xl border border-slate-700 flex flex-col sm:flex-row justify-center items-center gap-4 w-full sm:w-auto">
                         <button
-                            onClick={handleApproveAll}
-                            className="bg-green-100 hover:bg-green-200 text-green-700 font-semibold py-2 px-6 rounded-lg shadow-sm transition-all duration-300 w-full sm:w-auto"
+                            onClick={onBack}
+                            className="bg-slate-600 hover:bg-slate-500 text-slate-100 font-semibold py-2 px-6 rounded-lg shadow-sm transition-all duration-300 w-full sm:w-auto"
                         >
-                            Aprovar Todos
+                            Voltar
                         </button>
-                    )}
-                    <button
-                        onClick={handleConfirmClick}
-                        disabled={!allApproved}
-                        className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-300 transform hover:scale-105 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed disabled:scale-100 w-full sm:w-auto"
-                    >
-                        Confirmar e Avançar
-                    </button>
+                        {!allApproved && (
+                            <button
+                                onClick={handleApproveAll}
+                                className="bg-green-500/20 hover:bg-green-500/30 text-green-300 font-semibold py-2 px-6 rounded-lg shadow-sm transition-all duration-300 w-full sm:w-auto"
+                            >
+                                Aprovar Todos
+                            </button>
+                        )}
+                        <button
+                            onClick={handleConfirmClick}
+                            disabled={!allApproved}
+                            className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-300 transform hover:scale-105 disabled:from-slate-500 disabled:to-slate-600 disabled:cursor-not-allowed disabled:scale-100 w-full sm:w-auto"
+                        >
+                            Confirmar e Avançar
+                        </button>
+                    </div>
                 </div>
             </div>
         </>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { UrlInputForm } from './components/UrlInputForm';
 import { ValidationModal } from './components/ValidationModal';
 import { LoadingOverlay } from './components/LoadingOverlay';
@@ -10,6 +10,7 @@ import { StartOptions } from './components/StartOptions';
 import { IdeaForm } from './components/IdeaForm';
 import { AnalysisDisplay } from './components/AnalysisDisplay';
 import { CandidateSelectionModal } from './components/CandidateSelectionModal';
+import { Stepper } from './components/Stepper';
 import { 
   findCompanyCandidates,
   getFullCompanyInfo,
@@ -22,7 +23,7 @@ import {
   analyzeLogo,
   getCompanyAnalysis,
 } from './services/geminiService';
-import type { ValidationData, BrandboardData, Source, CompanyCandidate } from './types';
+import type { ValidationData, BrandboardData, CompanyCandidate } from './types';
 
 type AppStep = 'HOME' | 'CHOOSE_MODE' | 'FORM_INPUT' | 'VALIDATING' | 'SELECTING_CANDIDATE' | 'CONFIRM_VALIDATION' | 'GENERATING' | 'CONFIRM_ANALYSIS' | 'CONFIRM_STEP' | 'FINAL_DISPLAY';
 type FormMode = 'NEW_IDEA' | 'EXISTING_COMPANY';
@@ -32,6 +33,7 @@ interface FormData {
   address: string;
   city: string;
   site: string;
+  instagram: string;
 }
 
 // Helper to convert File to Base64
@@ -43,7 +45,6 @@ const fileToBase64 = (file: File): Promise<string> => {
     reader.onerror = error => reject(error);
   });
 };
-
 
 function App() {
   const [currentStep, setCurrentStep] = useState<AppStep>('HOME');
@@ -109,7 +110,7 @@ function App() {
     setBrandboardData({});
   }
 
-  const handleFormSubmit = useCallback(async ({ name, address, city, site }: FormData) => {
+  const handleFormSubmit = useCallback(async ({ name, address, city, site, instagram }: FormData) => {
     startValidation();
     
     try {
@@ -118,7 +119,7 @@ function App() {
             finalUrl = `https://${finalUrl}`;
         }
         
-        const candidates = await findCompanyCandidates(name, city, address, finalUrl, userCoords || undefined);
+        const candidates = await findCompanyCandidates(name, city, address, finalUrl, userCoords || undefined, instagram);
 
         if (candidates.length === 0) {
             throw new Error('COMPANY_NOT_FOUND');
@@ -193,6 +194,7 @@ function App() {
                 companyAnalysisSources: sources
             };
         }
+        
         setValidationData(finalData);
         setCurrentStep('CONFIRM_ANALYSIS');
 
@@ -242,6 +244,7 @@ function App() {
               return;
           }
       }
+      
       await startAnalysis(dataWithLogoAnalysis);
   };
 
@@ -255,9 +258,10 @@ function App() {
 
     setBrandboardData(newBrandboardData);
     if(newGeneratedLogo) {
-        setGeneratedLogo(`data:image/png;base64,${newGeneratedLogo}`);
+        const logoDataUrl = `data:image/png;base64,${newGeneratedLogo}`;
+        setGeneratedLogo(logoDataUrl);
         if(validationData){
-            setValidationData({...validationData, generatedLogo: `data:image/png;base64,${newGeneratedLogo}`})
+            setValidationData({...validationData, generatedLogo: logoDataUrl })
         }
     }
     
@@ -349,7 +353,7 @@ function App() {
         setCurrentStep('CONFIRM_STEP');
 
     } else {
-        setCurrentStep('CONFIRM_ANALYSIS');
+        setCurrentStep('CONFIRM_VALIDATION');
     }
   };
   
@@ -357,6 +361,34 @@ function App() {
     setFormMode(mode);
     setCurrentStep('FORM_INPUT');
   };
+
+  const stepperSteps = ['Validação', 'Análise', 'Núcleo', 'Verbal', 'Visual', 'Canais', 'Final'];
+  const activeStepIndex = useMemo(() => {
+      switch (currentStep) {
+          case 'HOME':
+          case 'CHOOSE_MODE':
+          case 'FORM_INPUT':
+          case 'VALIDATING':
+          case 'SELECTING_CANDIDATE':
+          case 'CONFIRM_VALIDATION':
+              return 0;
+          case 'CONFIRM_ANALYSIS':
+              return 1;
+          case 'CONFIRM_STEP':
+              return Object.keys(brandboardData).length + 1;
+          case 'FINAL_DISPLAY':
+              return stepperSteps.length - 1;
+          case 'GENERATING':
+              if (!validationData?.companyAnalysis) {
+                   return 1; // Generating 'Análise'
+              }
+              const partCount = Object.keys(brandboardData).length;
+              if (partCount === 4) return 6; // Finalizing
+              return partCount + 2;
+          default:
+              return 0;
+      }
+  }, [currentStep, brandboardData, validationData, stepperSteps.length]);
   
   const renderContent = () => {
     switch(currentStep) {
@@ -404,13 +436,13 @@ function App() {
         );
       case 'FINAL_DISPLAY':
         return (
-          <BrandboardDisplay 
-            brandboardData={brandboardData as BrandboardData}
-            validationData={validationData!} 
-            generatedLogo={generatedLogo}
-            photographyImages={photographyImages}
-            isEditable={true}
-          />
+            <BrandboardDisplay 
+              brandboardData={brandboardData as BrandboardData}
+              validationData={validationData!} 
+              generatedLogo={generatedLogo}
+              photographyImages={photographyImages}
+              isEditable={true}
+            />
         );
       case 'GENERATING':
       default:
@@ -419,56 +451,58 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen transition-colors duration-500">
+    <div className="min-h-screen transition-colors duration-500 bg-slate-900 text-gray-200 font-['Poppins',_sans_serif]">
       {['GENERATING', 'VALIDATING'].includes(currentStep) && <LoadingOverlay message={loadingMessage} streamingText={isStreaming ? streamingText : undefined} />}
       
       {currentStep !== 'HOME' && (
-        <header className="py-4 px-4 sm:px-8 bg-white shadow-md">
-            <div className="max-w-6xl mx-auto flex justify-between items-center">
-                <div className="flex items-center space-x-3 overflow-hidden">
-                    <AppLogo />
-                    <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 whitespace-nowrap">Gerador de Marketingboard</h1>
-                    {validationData?.companyName && (
-                        <>
-                            <div className="hidden sm:block h-6 w-px bg-gray-300"></div>
-                            <h2 className="hidden sm:block text-xl font-medium text-purple-700 truncate" title={validationData.companyName}>
-                                {validationData.companyName}
-                            </h2>
-                        </>
+        <header className="py-6 px-4 sm:px-8 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-40 border-b border-slate-700">
+          <div className="max-w-7xl mx-auto">
+              <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center space-x-3 overflow-hidden cursor-pointer" onClick={() => resetState()}>
+                      <AppLogo />
+                      <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100 whitespace-nowrap font-['Playfair_Display',_serif]">
+                          Gerador de Marketingboard
+                      </h1>
+                  </div>
+                   <div className="flex items-center gap-4">
+                    {currentStep === 'FINAL_DISPLAY' && (
+                      <button 
+                        onClick={() => resetState()}
+                        className="flex-shrink-0 bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-300 transform hover:scale-105"
+                      >
+                        Gerar Novo
+                      </button>
                     )}
+                  </div>
+              </div>
+              <div className="w-full overflow-x-auto pb-4 -mb-4">
+                  <div className="min-w-[700px] px-2 pt-2">
+                    <Stepper steps={stepperSteps} currentStepIndex={activeStepIndex} />
+                  </div>
                 </div>
-                {currentStep === 'FINAL_DISPLAY' && (
-                  <button 
-                    onClick={resetState}
-                    className="flex-shrink-0 bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-300 transform hover:scale-105"
-                  >
-                    Gerar Novo
-                  </button>
-                )}
-            </div>
+          </div>
         </header>
       )}
 
       <main className={currentStep !== 'HOME' ? "py-10 px-4 sm:px-8" : ""}>
-        <div className={currentStep !== 'HOME' ? "max-w-6xl mx-auto" : ""}>
-          {renderContent()}
-        </div>
+        {renderContent()}
       </main>
 
       <CandidateSelectionModal
         isVisible={currentStep === 'SELECTING_CANDIDATE'}
         candidates={companyCandidates || []}
         onSelect={handleCandidateSelect}
-        onReject={resetState}
+        onReject={() => resetState()}
       />
 
       <ValidationModal 
         isVisible={currentStep === 'CONFIRM_VALIDATION'}
         onConfirm={handleValidationConfirm}
-        onCancel={resetState}
+        onCancel={() => resetState()}
         onReject={() => setCurrentStep('FORM_INPUT')}
         validationData={validationData}
       />
+
     </div>
   );
 }

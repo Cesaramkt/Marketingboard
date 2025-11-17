@@ -122,19 +122,26 @@ export const findCompanyCandidates = async (
   city: string,
   address?: string,
   site?: string,
-  coords?: { latitude: number, longitude: number }
+  coords?: { latitude: number, longitude: number },
+  instagram?: string,
 ): Promise<CompanyCandidate[]> => {
+    const searchTerms = [name, city, address, site, instagram].filter(Boolean).join(', ');
+
     const prompt = `
       # PERSONA: Assistente de Pesquisa OSINT (Open Source Intelligence)
       Sua única missão é encontrar empresas candidatas com base nos dados do usuário e retornar uma lista estruturada. Você é metódico, preciso e entende a importância da localização. Sua prioridade é evitar um resultado vazio.
 
       **TAREFA:** Encontre até 3 empresas que correspondam à busca abaixo, seguindo a hierarquia de regras.
 
-      **DADOS FORNECIDOS PELO USUÁRIO:**
+      **TERMOS DE BUSCA PRINCIPAIS (Use isso para sua pesquisa):**
+      "${searchTerms}"
+
+      **DADOS FORNECIDOS PELO USUÁRIO (Contexto):**
       - Nome da Empresa: "${name}"
       - Cidade (Fonte da Verdade): "${city}"
       - Endereço (Opcional): "${address || 'Não fornecido'}"
       - Site (Opcional): "${site || 'Não fornecido'}"
+      - Instagram (Opcional): "${instagram || 'Não fornecido'}"
       
       **REGRAS CRÍTICAS DE BUSCA E CLASSIFICAÇÃO (SIGA ESTA ORDEM):**
       1.  **PRIORIDADE 1 - CORRESPONDÊNCIA NA CIDADE:** A busca principal DEVE focar em encontrar a empresa "${name}" na cidade de "${city}". Se encontrar uma correspondência exata ou muito provável, ela deve ser o primeiro item da lista com o 'matchType' "EXATO_NA_CIDADE".
@@ -171,10 +178,19 @@ export const findCompanyCandidates = async (
 
 
 export const getFullCompanyInfo = async(candidate: CompanyCandidate): Promise<ValidationData> => {
+    const searchTerms = [
+        candidate.companyName,
+        candidate.address !== 'Não encontrado' ? candidate.address : '',
+        candidate.websiteUrl !== 'Não encontrado' ? candidate.websiteUrl : ''
+    ].filter(Boolean).join(', ');
+
     const prompt = `
         Aja como um Diretor de Estratégia, especialista em OSINT. O usuário selecionou a empresa correta. Sua missão agora é aprofundar a pesquisa e extrair informações detalhadas sobre esta empresa específica.
 
-        **EMPRESA CONFIRMADA PELO USUÁRIO:**
+        **TERMOS DE BUSCA PRINCIPAIS (Use-os para encontrar a empresa):**
+        ${searchTerms}
+
+        **EMPRESA CONFIRMADA PELO USUÁRIO (Contexto):**
         - Nome: ${candidate.companyName}
         - Endereço: ${candidate.address}
         - Website: ${candidate.websiteUrl}
@@ -184,8 +200,8 @@ export const getFullCompanyInfo = async(candidate: CompanyCandidate): Promise<Va
         **ESTRUTURA DA RESPOSTA (Use este formato exato):**
         Nome da Empresa: ${candidate.companyName}
         Descrição: ${candidate.description}
-        Endereço: ${candidate.address}
-        Website: ${candidate.websiteUrl}
+        Endereço: [Endereço completo e verificado]
+        Website: [URL do site oficial]
         Logo URL: [URL direta e funcional para a imagem do logotipo]
         Resumo das Avaliações: [Resumo de 1-2 frases do sentimento geral das avaliações dos clientes, seguido por um ou dois exemplos de avaliação real entre aspas que capturem a essência do feedback.]
         Redes Sociais:
@@ -261,36 +277,70 @@ export const createConceptFromIdea = async (
     };
 }
 
+const formatCompanyDataForDossier = (data: ValidationData): string => {
+    const socialLinks = data.socialMediaLinks?.map(l => `- ${l.platform}: ${l.url}`).join('\n') || 'Não disponível.';
+    const content = `
+# Dossiê da Empresa: ${data.companyName}
+
+## Informações de Validação
+- **Nome:** ${data.companyName}
+- **Descrição:** ${data.description}
+- **Endereço:** ${data.address || 'Não informado'}
+- **Website:** ${data.websiteUrl || 'Não informado'}
+
+## Presença Online
+- **URL do Logo:** ${data.logoUrl || 'Não informado'}
+- **Redes Sociais:**
+${socialLinks}
+
+## Reputação (se disponível)
+- **Resumo das Avaliações:** ${data.reviewsSummary || 'Nenhum resumo de avaliações encontrado.'}
+
+## Análise do Logo (se disponível)
+- **Descrição do Logo:** ${data.uploadedLogoAnalysis?.logoDescription || 'Nenhuma análise de logo disponível.'}
+- **Paleta de Cores do Logo:** ${data.uploadedLogoAnalysis?.colorPalette?.primary.map(c => `${c.name} (${c.hex})`).join(', ') || 'N/A'}
+
+Este documento é a fonte primária de verdade para a empresa "${data.companyName}".
+`;
+    return content.trim();
+};
 
 export const getCompanyAnalysis = async (companyInfo: ValidationData, onChunk?: (text: string) => void): Promise<{ analysisText: string, sources: Source[] }> => {
-    const socialMediaLinks = companyInfo.socialMediaLinks?.map(l => `- ${l.platform}: ${l.url}`).join('\n') || 'Não fornecido';
+    const searchTerms = [
+        companyInfo.companyName,
+        companyInfo.websiteUrl,
+        companyInfo.address
+    ].filter(Boolean).join(', ');
     
+    const companyDossier = formatCompanyDataForDossier(companyInfo);
+
     const prompt = `
       # PERSONA: Consultor Estratégico de Marcas IA
       Sua função é transformar dados e insights em uma estrutura de marketing clara, lógica e acionável. Você valoriza a clareza sobre a complexidade e a estratégia sobre a tática. Sua comunicação é direta, profissional e focada em gerar resultados para o negócio.
 
-      **TAREFA:** Conduza uma pesquisa aprofundada (OSINT) sobre a empresa-alvo e traduza os dados brutos em um diagnóstico estratégico claro e acionável. O objetivo é criar uma base sólida e factual para as próximas decisões de marketing.
+      **TAREFA:** Conduza uma pesquisa aprofundada sobre a empresa-alvo e traduza os dados brutos em um diagnóstico estratégico claro e acionável. O objetivo é criar uma base sólida e factual para as próximas decisões de marketing.
 
-      **FONTE DA VERDADE (NÃO MUDE ESTA EMPRESA):**
-      - Nome: ${companyInfo.companyName}
-      - Website Principal: ${companyInfo.websiteUrl || 'Não fornecido'}
-      - Endereço: ${companyInfo.address || 'Não fornecido'}
-      - Redes Sociais Conhecidas:
-      ${socialMediaLinks}
+      **FONTE DE DADOS PRIMÁRIA (OBRIGATÓRIO):** As informações a seguir foram validadas e formam o dossiê da empresa. Você DEVE usar este dossiê como sua principal fonte de verdade. Use a pesquisa na web apenas para complementar informações que não estão neste dossiê.
+      --- INÍCIO DO DOSSIÊ DA EMPRESA ---
+      ${companyDossier}
+      --- FIM DO DOSSIÊ DA EMPRESA ---
+
+      **TERMOS DE BUSCA ADICIONAIS (se necessário para complementar):**
+      ${searchTerms}
 
       **PROCESSO DE ANÁLISE PROFUNDA (SEJA METÓDICO):**
-      1.  **PONTO DE PARTIDA:** Comece sua pesquisa USANDO O WEBSITE e as redes sociais fornecidas.
-      2.  **Análise de Conteúdo:** Leia os textos do site, posts de redes sociais. Qual é a mensagem principal? Qual o tom de voz?
-      3.  **Análise Visual:** Analise as imagens publicadas. Que tipo de fotografia usam? Qual a estética?
-      4.  **Análise de Avaliações (Voz do Cliente):** Identifique os **elogios recorrentes** (o que eles amam?) e as **críticas recorrentes** (onde estão as falhas?).
+      1.  **PONTO DE PARTIDA:** Comece sua pesquisa USANDO O WEBSITE e as redes sociais fornecidas no dossiê. Se um perfil de Instagram foi fornecido, ele é uma fonte de informação prioritária. Analise-o profundamente.
+      2.  **Análise de Conteúdo (Site e Redes Sociais):** Leia os textos do site, posts de redes sociais. Qual é a mensagem principal? Qual o tom de voz? Como a empresa se posiciona?
+      3.  **Análise Visual:** Analise as imagens publicadas no site e, principalmente, nas redes sociais. Que tipo de fotografia usam? Qual a estética? Qual o padrão de design?
+      4.  **Análise de Reputação (Voz do Cliente no Google):** Sua principal fonte para reputação são as avaliações da empresa no Google (Google Meu Negócio). Pesquise ativamente por elas. Dê um peso maior às avaliações mais recentes, pois elas refletem a realidade atual do negócio. Extraia a pontuação média, sintetize os principais pontos positivos e negativos em um resumo, identifique as palavras-chave mais recorrentes nas avaliações e liste os elogios e críticas mais comuns.
 
       **PROCESSO DE PENSAMENTO ESTRUTURADO (SIMULAÇÃO):**
-      Antes de gerar a resposta final, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`THINKING: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
+      Antes de gerar a resposta final, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`PENSAMENTO: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
       Exemplos:
-      THINKING: Iniciando varredura OSINT no website e redes sociais fornecidas.
-      THINKING: Sintetizando avaliações de clientes para identificar padrões de elogios e críticas.
-      THINKING: Analisando o tom de voz e o estilo visual para definir a personalidade da comunicação.
-      THINKING: Compilando os insights em um diagnóstico estratégico estruturado.
+      PENSAMENTO: Iniciando varredura no website e, com prioridade, no Instagram fornecido.
+      PENSAMENTO: Sintetizando as avaliações de clientes diretamente do Google para extrair pontuação, resumo e palavras-chave, priorizando as mais recentes.
+      PENSAMENTO: Analisando o tom de voz e o estilo visual das redes sociais para definir a personalidade da comunicação.
+      PENSAMENTO: Compilando os insights em um diagnóstico estratégico estruturado.
 
       **ESTRUTURA DO SEU DIAGNÓSTICO (sua resposta DEVE seguir esta estrutura):**
       Sintetize suas descobertas em um relatório conciso, usando TÍTULOS EM MARKDOWN (##). Explique o porquê de cada ponto.
@@ -302,10 +352,12 @@ export const getCompanyAnalysis = async (companyInfo: ValidationData, onChunk?: 
       - **Propósito Declarado:** Qual é a missão ou propósito que a empresa comunica?
       - **Solução Oferecida:** O que a empresa vende e qual problema ela diz resolver?
 
-      ## Percepção do Mercado (O que os clientes dizem que eles são)
+      ## Análise de Reputação e Mercado (O que os clientes dizem que eles são)
+      - **Pontuação Média (Google Meu Negócio):** Qual a pontuação de estrelas e o número de avaliações? (Ex: 4.7 de 5 estrelas com base em 231 avaliações). Se não encontrar, informe "Não encontrado".
+      - **Resumo Detalhado das Avaliações:** Um parágrafo resumindo o sentimento geral dos clientes. O que eles amam? Do que eles reclamam? Seja específico.
+      - **Palavras-chave de Reputação:** Uma lista com as 5-7 palavras ou termos mais citados nas avaliações (positivos e negativos). Ex: "atendimento rápido", "preço justo", "demora na entrega", "produto de qualidade".
       - **Elogios Recorrentes:** Liste em tópicos os pontos positivos mais citados.
       - **Críticas Recorrentes:** Liste em tópicos as queixas mais comuns.
-      - **Palavras-chave do Cliente:** Quais palavras os clientes mais usam para descrever a experiência?
 
       ## Análise de Comunicação
       - **Personalidade da Marca (Tom de Voz):** Como a empresa se comunica? É formal, divertida, técnica?
@@ -317,13 +369,15 @@ export const getCompanyAnalysis = async (companyInfo: ValidationData, onChunk?: 
       - **Aviso Profissional:** Uma recomendação final e direta para o empreendedor.
     `;
     
+    const config: any = {
+        tools: [{googleSearch: {}}],
+        temperature: 0.1
+    };
+
     const responseStream = await ai.models.generateContentStream({
         model: "gemini-2.5-pro",
         contents: prompt,
-        config: {
-            tools: [{googleSearch: {}}],
-            temperature: 0.1
-        }
+        config: config
     });
 
     let fullText = '';
@@ -345,7 +399,8 @@ export const getCompanyAnalysis = async (companyInfo: ValidationData, onChunk?: 
     }
     
     const sources = extractSources(finalResponse);
-    return { analysisText: fullText, sources };
+    const analysisText = fullText.split('\n').filter(line => !line.startsWith('PENSAMENTO:')).join('\n').trim();
+    return { analysisText, sources };
 }
 
 export const analyzeLogo = async (base64ImageData: string): Promise<LogoAnalysis> => {
@@ -471,13 +526,18 @@ export const generateBrandboardPart1 = async (companyInfo: ValidationData, onChu
       }
       
       **PROCESSO DE PENSAMENTO ESTRUTURADO (SIMULAÇÃO):**
-      Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`THINKING: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
+      Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`PENSAMENTO: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
       Exemplos:
-      THINKING: Analisando o diagnóstico para extrair o propósito central da marca.
-      THINKING: Definindo arquétipos que se conectem com o público-alvo identificado.
-      THINKING: Cruzando os diferenciais com as dores do cliente para criar a declaração de posicionamento.
-      THINKING: Estruturando os valores da empresa de forma clara e memorável.
-      THINKING: Compilando todas as informações no formato JSON solicitado.
+      PENSAMENTO: Analisando o diagnóstico para extrair o propósito central da marca.
+      PENSAMENTO: Definindo arquétipos que se conectem com o público-alvo identificado.
+      PENSAMENTO: Cruzando os diferenciais com as dores do cliente para criar a declaração de posicionamento.
+      PENSAMENTO: Estruturando os valores da empresa de forma clara e memorável.
+      PENSAMENTO: Compilando todas as informações no formato JSON solicitado.
+
+      **INSTRUÇÃO ESPECÍFICA PARA CONCORRENTES:** Ao preencher o campo 'competitors', sua análise deve ser uma combinação de modelo de negócio e proximidade geográfica. Siga esta lógica:
+      1.  **Prioridade Máxima (Alvo Principal):** Encontre os concorrentes mais diretos que operam com o **mesmo modelo de negócio** E estão localizados na **mesma cidade** da empresa. Estes são os seus principais rivais.
+      2.  **Expansão Geográfica (Se necessário):** Se você não encontrar 3 concorrentes fortes na mesma cidade, expanda sua busca. Procure por empresas com o mesmo modelo de negócio no **estado** e, finalmente, em nível **nacional**.
+      3.  **Resultado Final:** A lista de 3 concorrentes deve refletir essa prioridade. Comece com os concorrentes locais e, se necessário, complete a lista com concorrentes regionais ou nacionais, sempre mencionando a localização deles se for diferente da empresa analisada (ex: 'Nome do Concorrente (Outra Cidade/Estado)'). O fator mais importante é a similaridade do negócio.
 
       **REGRAS CRÍTICAS:**
       1.  **FORMATO:** Sua resposta DEVE ser um objeto JSON válido que corresponda exatamente ao schema fornecido, e NADA MAIS.
@@ -578,13 +638,13 @@ export const generateBrandboardPart2 = async (companyInfo: ValidationData, conte
       **TAREFA:** Sua missão é construir a "Identidade Verbal (Como Falamos)". Com base na estratégia da Parte 1, CRIE e DEFINA como a marca deve soar para o mundo. Você deve preencher TODOS os campos obrigatórios do schema JSON com conteúdo criativo e alinhado à estratégia, usando a Parte 1 como sua principal fonte de inspiração.
 
       **PROCESSO DE PENSAMENTO ESTRUTURADO (SIMULAÇÃO):**
-      Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`THINKING: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
+      Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`PENSAMENTO: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
       Exemplos:
-      THINKING: Traduzindo os arquétipos da marca em uma personalidade de voz descritiva.
-      THINKING: Definindo tons de voz específicos para cenários de Vendas, Suporte e Conteúdo.
-      THINKING: Criando um slogan que encapsula a declaração de posicionamento.
-      THINKING: Derivando pilares de conteúdo a partir dos valores e da missão da marca.
-      THINKING: Compilando as diretrizes verbais no formato JSON solicitado.
+      PENSAMENTO: Traduzindo os arquétipos da marca em uma personalidade de voz descritiva.
+      PENSAMENTO: Definindo tons de voz específicos para cenários de Vendas, Suporte e Conteúdo.
+      PENSAMENTO: Criando um slogan que encapsula a declaração de posicionamento.
+      PENSAMENTO: Derivando pilares de conteúdo a partir dos valores e da missão da marca.
+      PENSAMENTO: Compilando as diretrizes verbais no formato JSON solicitado.
 
       **REGRAS CRÍTICAS:**
       1.  **FORMATO:** Sua resposta DEVE ser um objeto JSON válido que corresponda exatamente ao schema fornecido, e NADA MAIS.
@@ -710,13 +770,13 @@ export const generateBrandboardPart3 = async (companyInfo: ValidationData, conte
       **TAREFA:** Sua missão é CRIAR e DEFINIR um universo visual coeso para a "Identidade Visual (Como Nos Mostramos)", traduzindo a estratégia (Parte 1) e a voz (Parte 2) em elementos visuais. Você deve preencher TODOS os campos obrigatórios do schema JSON.
 
       **PROCESSO DE PENSAMENTO ESTRUTURADO (SIMULAÇÃO):**
-      Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`THINKING: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
+      Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`PENSAMENTO: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
       Exemplos:
-      THINKING: Elaborando o conceito do logotipo com base na instrução específica e nos arquétipos.
-      THINKING: Construindo uma paleta de cores funcional que reflete a personalidade da marca.
-      THINKING: Selecionando uma combinação de fontes (tipografia) que seja legível e alinhada à identidade.
-      THINKING: Definindo um estilo fotográfico e criando 3 prompts de imagem para exemplificar.
-      THINKING: Compilando os elementos visuais no formato JSON solicitado.
+      PENSAMENTO: Elaborando o conceito do logotipo com base na instrução específica e nos arquétipos.
+      PENSAMENTO: Construindo uma paleta de cores funcional que reflete a personalidade da marca.
+      PENSAMENTO: Selecionando uma combinação de fontes (tipografia) que seja legível e alinhada à identidade.
+      PENSAMENTO: Definindo um estilo fotográfico e criando 3 prompts de imagem para exemplificar.
+      PENSAMENTO: Compilando os elementos visuais no formato JSON solicitado.
 
       **REGRAS CRÍTICAS:**
       1.  **FOTOGRAFIA:** Você DEVE gerar 3 prompts de imagem distintos e criativos no campo 'imagePrompts'.
@@ -820,13 +880,13 @@ export const generateBrandboardPart4 = async (companyInfo: ValidationData, conte
       **TAREFA:** Sua missão final é CRIAR e DEFINIR a "Estratégia de Canal (Onde Atuamos)". Com base em todo o brandboard, desenvolva um plano de marketing e vendas de alto nível, preenchendo TODOS os campos obrigatórios do schema JSON com personas detalhadas e estratégias de canal realistas.
 
       **PROCESSO DE PENSAMENTO ESTRUTURADO (SIMULAÇÃO):**
-      Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`THINKING: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
+      Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`PENSAMENTO: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
       Exemplos:
-      THINKING: Desenvolvendo duas personas detalhadas a partir da definição de público-alvo.
-      THINKING: Mapeando a jornada do cliente, da descoberta à fidelização, com objetivos claros para cada etapa.
-      THINKING: Selecionando os canais de comunicação mais eficazes para alcançar as personas.
-      THINKING: Definindo métricas de sucesso realistas para cada canal na matriz.
-      THINKING: Compilando o plano de canais no formato JSON solicitado.
+      PENSAMENTO: Desenvolvendo duas personas detalhadas a partir da definição de público-alvo.
+      PENSAMENTO: Mapeando a jornada do cliente, da descoberta à fidelização, com objetivos claros para cada etapa.
+      PENSAMENTO: Selecionando os canais de comunicação mais eficazes para alcançar as personas.
+      PENSAMENTO: Definindo métricas de sucesso realistas para cada canal na matriz.
+      PENSAMENTO: Compilando o plano de canais no formato JSON solicitado.
 
       **REGRAS CRÍTICAS:**
       1.  **PERSONAS E CANAIS:** Você DEVE criar exatamente 2 personas detalhadas e sugerir um mínimo de 3 canais de comunicação realistas.

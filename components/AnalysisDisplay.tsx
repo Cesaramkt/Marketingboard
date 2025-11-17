@@ -8,31 +8,41 @@ interface AnalysisDisplayProps {
   onBack: () => void;
 }
 
-const parseMarkdown = (text: string) => {
-    const blocks = text.split('\n\n'); // Split by double newlines to group list items
-    
-    return blocks.flatMap((block, blockIndex) => {
-        const lines = block.split('\n');
-        
-        if (lines.some(line => line.trim().startsWith('- '))) {
-            const listItems = lines
-                .filter(line => line.trim().startsWith('- '))
-                .map((line, lineIndex) => (
-                    <li key={`${blockIndex}-${lineIndex}`} className="mb-1">{line.trim().substring(2)}</li>
-                ));
-            return <ul key={blockIndex} className="list-disc pl-5 mb-4">{listItems}</ul>;
-        }
+interface Section {
+  title: string;
+  content: string;
+}
 
-        return lines.map((line, lineIndex) => {
-            if (line.startsWith('## ')) {
-                return <h2 key={`${blockIndex}-${lineIndex}`} className="text-xl font-bold text-purple-700 mt-6 mb-3 pb-2 border-b border-purple-100">{line.substring(3)}</h2>;
-            }
-            if (line.trim() === '') {
-                return null;
-            }
-            return <p key={`${blockIndex}-${lineIndex}`} className="mb-3 leading-relaxed">{line}</p>;
-        });
-    });
+const parseContentToListItems = (contentBlock: string) => {
+    return contentBlock.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('- ') || line.startsWith('* '))
+      .map((line, index) => (
+        <li key={index} className="mb-2">{line.substring(2)}</li>
+      ));
+};
+
+const parseContentToParagraphs = (contentBlock: string) => {
+    return contentBlock.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('- ') && !line.startsWith('* '))
+        .map((line, index) => <p key={index} className="mb-4 leading-relaxed">{line}</p>)
+}
+
+const parseAnalysisToSections = (text: string): Section[] => {
+  const sections: Section[] = [];
+  // Split on lines that start with ##, keeping the delimiter
+  const rawSections = text.split(/^(?=##\s)/m); 
+
+  rawSections.forEach(rawSection => {
+    if (rawSection.trim() === '') return;
+    const lines = rawSection.split('\n');
+    const title = lines[0].replace('## ', '').trim();
+    const content = lines.slice(1).join('\n').trim();
+    sections.push({ title, content });
+  });
+
+  return sections;
 };
 
 export const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysisText, sources, onConfirm, onBack }) => {
@@ -44,32 +54,51 @@ export const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysisText, 
         );
     }
 
+    const analysisSections = parseAnalysisToSections(analysisText);
+
     return (
-        <div className="max-w-3xl mx-auto">
-             <button onClick={onBack} className="flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4 group">
+        <div className="max-w-4xl mx-auto">
+             <button onClick={onBack} className="flex items-center text-sm text-slate-400 hover:text-slate-200 mb-4 group">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 Voltar
             </button>
-            <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-xl">
-                <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">Análise Profunda da Marca</h1>
-                <p className="text-center text-gray-600 mb-8">Nossa IA realizou uma pesquisa (OSINT) sobre a empresa. Revise o diagnóstico abaixo. Ele será a base para criar todo o marketingboard.</p>
+            <div className="bg-slate-800/50 backdrop-blur-sm p-6 sm:p-10 rounded-2xl shadow-xl border border-slate-700">
+                <h1 className="text-3xl font-bold text-center text-slate-100 mb-2 font-['Playfair_Display',_serif]">Análise Profunda da Marca</h1>
+                <p className="text-center text-slate-400 mb-8">Nossa IA realizou uma pesquisa sobre a empresa. Revise o diagnóstico abaixo. Ele será a base para criar todo o marketingboard.</p>
                 
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 text-gray-700">
-                    {parseMarkdown(analysisText)}
+                <div className="space-y-6">
+                    {analysisSections.map((section, index) => {
+                         const listItems = parseContentToListItems(section.content);
+                         const paragraphs = parseContentToParagraphs(section.content);
+
+                         return (
+                            <div key={index} className="bg-slate-800 p-6 rounded-xl border border-slate-700 text-slate-300 transition-all hover:border-purple-500/30">
+                                <h2 className="text-xl font-bold text-purple-400 mb-4">{section.title}</h2>
+                                <div className="prose prose-invert max-w-none text-slate-300">
+                                    {paragraphs}
+                                    {listItems.length > 0 && (
+                                        <ul className="list-disc pl-5 space-y-1">
+                                            {listItems}
+                                        </ul>
+                                    )}
+                                </div>
+                            </div>
+                         )
+                    })}
                 </div>
 
                 {sources && sources.length > 0 && (
                     <div className="mt-8">
-                        <h3 className="font-semibold text-gray-800 text-lg">Fontes Utilizadas na Análise:</h3>
+                        <h3 className="font-semibold text-slate-200 text-lg">Fontes Utilizadas na Análise:</h3>
                         <ul className="mt-2 text-sm space-y-1">
                             {sources.map((source, index) => (
                                 <li key={index} className="flex items-start">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-purple-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                     </svg>
-                                    <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline break-all">{source.title}</a>
+                                    <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline break-all">{source.title}</a>
                                 </li>
                             ))}
                         </ul>
@@ -79,7 +108,7 @@ export const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysisText, 
                 <div className="flex justify-center gap-4 mt-10">
                     <button
                         onClick={onBack}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-6 rounded-lg shadow-sm transition-all duration-300"
+                        className="bg-slate-600 hover:bg-slate-500 text-slate-100 font-semibold py-2 px-6 rounded-lg shadow-sm transition-all duration-300"
                     >
                         Voltar
                     </button>

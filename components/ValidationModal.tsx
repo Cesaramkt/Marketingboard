@@ -25,6 +25,7 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
 }) => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [noLogo, setNoLogo] = useState(false);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -33,7 +34,23 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
     }
     setLogoFile(file);
     setNoLogo(false);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        setLogoPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
+
+  useEffect(() => {
+    if (!isVisible) {
+      // Reset state when modal is closed
+      setLogoFile(null);
+      setLogoPreviewUrl(null);
+      setNoLogo(false);
+    }
+  }, [isVisible]);
+
 
   useEffect(() => {
     const handlePaste = (event: ClipboardEvent) => {
@@ -67,6 +84,7 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
     setNoLogo(e.target.checked);
     if (e.target.checked) {
       setLogoFile(null);
+      setLogoPreviewUrl(null);
     }
   };
 
@@ -77,59 +95,63 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg text-center p-8 relative" onClick={e => e.stopPropagation()}>
-        <button onClick={onCancel} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors">
+    <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+      <div className="bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg text-center p-8 relative border border-slate-700" onClick={e => e.stopPropagation()}>
+        <button onClick={onCancel} className="absolute top-4 right-4 text-slate-500 hover:text-slate-200 transition-colors">
             <CloseIcon className="h-6 w-6" />
         </button>
         
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Confirmar Empresa</h2>
-        <p className="text-gray-600 mb-6">
+        <h2 className="text-2xl font-bold text-slate-100 mb-4 font-['Playfair_Display',_serif]">Confirmar Empresa</h2>
+        <p className="text-slate-400 mb-6">
             A IA encontrou os dados abaixo. Estão corretos? Envie seu logo (se tiver) para prosseguir com a análise.
         </p>
 
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-left mb-6 space-y-4">
-            {validationData?.logoUrl && !logoFile && (
+        <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-6 text-left mb-6 space-y-4">
+            {(logoPreviewUrl || (validationData?.logoUrl && !logoFile && !noLogo)) && (
                 <div className="flex justify-center mb-4">
-                    <img src={validationData.logoUrl} alt="Logotipo da empresa" className="max-h-20 bg-white p-2 rounded-md shadow"/>
+                    <img 
+                        src={logoPreviewUrl || validationData?.logoUrl} 
+                        alt="Logotipo da empresa" 
+                        className="max-h-20 bg-white/90 p-2 rounded-md shadow"
+                    />
                 </div>
             )}
             <div>
-                <p className="text-lg font-semibold text-purple-600">{validationData?.companyName || 'Carregando...'}</p>
-                <p className="text-gray-700 mt-1">{validationData?.description || 'Buscando detalhes...'}</p>
+                <p className="text-lg font-semibold text-purple-400">{validationData?.companyName || 'Carregando...'}</p>
+                <p className="text-slate-300 mt-1">{validationData?.description || 'Buscando detalhes...'}</p>
             </div>
             {validationData?.address && (
                  <div>
-                    <p className="text-sm font-semibold text-gray-500">Endereço:</p>
-                    <p className="text-gray-700">{validationData.address}</p>
+                    <p className="text-sm font-semibold text-slate-500">Endereço:</p>
+                    <p className="text-slate-300">{validationData.address}</p>
                 </div>
             )}
             {validationData?.websiteUrl && (
                 <div>
-                    <p className="text-sm font-semibold text-gray-500">Website:</p>
-                    <a href={validationData.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline break-all">{validationData.websiteUrl}</a>
+                    <p className="text-sm font-semibold text-slate-500">Website:</p>
+                    <a href={validationData.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline break-all">{validationData.websiteUrl}</a>
                 </div>
             )}
             {validationData?.reviewsSummary && (
                  <div>
-                    <p className="text-sm font-semibold text-gray-500">Avaliações:</p>
-                    <p className="text-gray-700 whitespace-pre-wrap text-sm italic border-l-2 border-purple-200 pl-2">"{validationData.reviewsSummary}"</p>
+                    <p className="text-sm font-semibold text-slate-500">Avaliações:</p>
+                    <p className="text-slate-400 whitespace-pre-wrap text-sm italic border-l-2 border-purple-500/30 pl-2">"{validationData.reviewsSummary}"</p>
                 </div>
             )}
             {validationData?.socialMediaLinks && validationData.socialMediaLinks.length > 0 && (
                 <div>
-                    <p className="text-sm font-semibold text-gray-500">Redes Sociais:</p>
+                    <p className="text-sm font-semibold text-slate-500">Redes Sociais:</p>
                     <div className="flex flex-wrap gap-2 mt-1">
                         {validationData.socialMediaLinks.map(link => (
-                            <a key={link.platform} href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm bg-purple-100 text-purple-700 px-2 py-1 rounded-full hover:bg-purple-200 transition-colors">{link.platform}</a>
+                            <a key={link.platform} href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full hover:bg-purple-500/30 transition-colors">{link.platform}</a>
                         ))}
                     </div>
                 </div>
             )}
         </div>
 
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-left mb-8 space-y-4">
-            <h3 className="font-semibold text-gray-800">Você já tem um logotipo?</h3>
+        <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-6 text-left mb-8 space-y-4">
+            <h3 className="font-semibold text-slate-200">Você já tem um logotipo?</h3>
             <FileUploader onFileSelect={handleFileSelect} uploadedFileName={logoFile?.name} disabled={noLogo} />
             <div className="flex items-center">
                 <input 
@@ -137,9 +159,9 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
                     id="no-logo" 
                     checked={noLogo} 
                     onChange={handleNoLogoChange}
-                    className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    className="h-4 w-4 text-purple-600 bg-slate-600 border-slate-500 rounded focus:ring-purple-500"
                 />
-                <label htmlFor="no-logo" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="no-logo" className="ml-2 block text-sm text-slate-300">
                     Não tenho um logotipo, a IA pode criar um.
                 </label>
             </div>
@@ -148,7 +170,7 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
         <div className="flex justify-center gap-4">
             <button
                 onClick={onReject}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-6 rounded-lg shadow-sm transition-all duration-300"
+                className="bg-slate-600 hover:bg-slate-500 text-slate-100 font-semibold py-2 px-6 rounded-lg shadow-sm transition-all duration-300"
             >
                 Não, buscar outra
             </button>

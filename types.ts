@@ -123,3 +123,20 @@ export interface BrandboardData {
     }>;
   };
 }
+// FIX: Added User interface to resolve import error in authService.
+export interface User {
+  id: string;
+  email?: string;
+}
+
+// FIX: Added SavedProject interface to resolve import errors in ProjectList and supabaseService.
+export interface SavedProject {
+  id: string;
+  created_at: string;
+  user_id: string;
+  company_name: string;
+  brandboard_data: BrandboardData;
+  validation_data: ValidationData;
+  generated_logo: string | null;
+  photography_images: string[];
+}
