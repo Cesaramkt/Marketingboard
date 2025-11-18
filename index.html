@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gerador de Marketingboard com IA</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,18 +34,27 @@
     height: 8px;
   }
   ::-webkit-scrollbar-track {
+    background: #f1f5f9; /* slate-100 */
+  }
+  .dark ::-webkit-scrollbar-track {
     background: #1e293b; /* slate-800 */
   }
   ::-webkit-scrollbar-thumb {
-    background: #475569; /* slate-600 */
+    background: #94a3b8; /* slate-400 */
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: #64748b; /* slate-500 */
   }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #475569; /* slate-600 */
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #64748b; /* slate-500 */
+  }
 </style>
 </head>
-  <body class="bg-slate-900 text-gray-200 font-['Poppins',_sans-serif]">
+  <body class="bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-200 font-['Poppins',_sans-serif] transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

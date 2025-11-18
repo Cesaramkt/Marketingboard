@@ -249,7 +249,7 @@ export const createConceptFromIdea = async (
     `;
 
     const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
+        model: "gemini-3-pro-preview",
         contents: prompt,
         config: { 
             temperature: 0.2,
@@ -329,15 +329,15 @@ export const getCompanyAnalysis = async (companyInfo: ValidationData, onChunk?: 
       ${searchTerms}
 
       **PROCESSO DE ANÁLISE PROFUNDA (SEJA METÓDICO):**
-      1.  **PONTO DE PARTIDA:** Comece sua pesquisa USANDO O WEBSITE e as redes sociais fornecidas no dossiê. Se um perfil de Instagram foi fornecido, ele é uma fonte de informação prioritária. Analise-o profundamente.
-      2.  **Análise de Conteúdo (Site e Redes Sociais):** Leia os textos do site, posts de redes sociais. Qual é a mensagem principal? Qual o tom de voz? Como a empresa se posiciona?
-      3.  **Análise Visual:** Analise as imagens publicadas no site e, principalmente, nas redes sociais. Que tipo de fotografia usam? Qual a estética? Qual o padrão de design?
-      4.  **Análise de Reputação (Voz do Cliente no Google):** Sua principal fonte para reputação são as avaliações da empresa no Google (Google Meu Negócio). Pesquise ativamente por elas. Dê um peso maior às avaliações mais recentes, pois elas refletem a realidade atual do negócio. Extraia a pontuação média, sintetize os principais pontos positivos e negativos em um resumo, identifique as palavras-chave mais recorrentes nas avaliações e liste os elogios e críticas mais comuns.
+      1.  **Análise de Reputação (VOZ DO CLIENTE - FOCO PRINCIPAL):** Esta é a seção mais importante do seu diagnóstico. Sua principal fonte para reputação são as avaliações da empresa no Google (Google Meu Negócio). PESQUISE ATIVAMENTE por elas. Dê um peso maior às avaliações mais recentes. Extraia a pontuação média, sintetize os principais pontos positivos e negativos em um resumo, identifique as palavras-chave mais recorrentes e liste os elogios e críticas mais comuns.
+      2.  **PONTO DE PARTIDA (Análise da Empresa):** Comece sua pesquisa USANDO O WEBSITE e as redes sociais fornecidas no dossiê. Se um perfil de Instagram foi fornecido, ele é uma fonte de informação prioritária. Analise-o profundamente.
+      3.  **Análise de Conteúdo (Site e Redes Sociais):** Leia os textos do site, posts de redes sociais. Qual é a mensagem principal? Qual o tom de voz? Como a empresa se posiciona?
+      4.  **Análise Visual:** Analise as imagens publicadas no site e, principalmente, nas redes sociais. Que tipo de fotografia usam? Qual a estética? Qual o padrão de design?
 
       **PROCESSO DE PENSAMENTO ESTRUTURADO (SIMULAÇÃO):**
       Antes de gerar a resposta final, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`PENSAMENTO: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
       Exemplos:
-      PENSAMENTO: Iniciando varredura no website e, com prioridade, no Instagram fornecido.
+      PENSAMENTO: Prioridade máxima: pesquisando avaliações no Google Meu Negócio para ${companyInfo.companyName}.
       PENSAMENTO: Sintetizando as avaliações de clientes diretamente do Google para extrair pontuação, resumo e palavras-chave, priorizando as mais recentes.
       PENSAMENTO: Analisando o tom de voz e o estilo visual das redes sociais para definir a personalidade da comunicação.
       PENSAMENTO: Compilando os insights em um diagnóstico estratégico estruturado.
@@ -375,7 +375,7 @@ export const getCompanyAnalysis = async (companyInfo: ValidationData, onChunk?: 
     };
 
     const responseStream = await ai.models.generateContentStream({
-        model: "gemini-2.5-pro",
+        model: "gemini-3-pro-preview",
         contents: prompt,
         config: config
     });
@@ -464,6 +464,16 @@ const companyValueSchema = {
     required: ['name', 'description'],
 };
 
+const competitorSchema = {
+    type: Type.OBJECT,
+    properties: {
+        name: { type: Type.STRING, description: "O nome do concorrente." },
+        link: { type: Type.STRING, description: "Um link relevante (site, Google Maps, etc.)." },
+    },
+    required: ['name', 'link'],
+};
+
+
 const part1Schema = {
     type: Type.OBJECT,
     properties: {
@@ -492,8 +502,8 @@ const part1Schema = {
                         targetAudience: { type: Type.STRING, description: "Descrição detalhada do cliente ideal." },
                         competitors: { 
                             type: Type.ARRAY, 
-                            description: "Lista dos 3 principais concorrentes.",
-                            items: { type: Type.STRING } 
+                            description: "Lista dos 3 principais concorrentes, cada um com nome e link.",
+                            items: competitorSchema
                         },
                         differentiators: { 
                             type: Type.ARRAY, 
@@ -537,7 +547,7 @@ export const generateBrandboardPart1 = async (companyInfo: ValidationData, onChu
       **INSTRUÇÃO ESPECÍFICA PARA CONCORRENTES:** Ao preencher o campo 'competitors', sua análise deve ser uma combinação de modelo de negócio e proximidade geográfica. Siga esta lógica:
       1.  **Prioridade Máxima (Alvo Principal):** Encontre os concorrentes mais diretos que operam com o **mesmo modelo de negócio** E estão localizados na **mesma cidade** da empresa. Estes são os seus principais rivais.
       2.  **Expansão Geográfica (Se necessário):** Se você não encontrar 3 concorrentes fortes na mesma cidade, expanda sua busca. Procure por empresas com o mesmo modelo de negócio no **estado** e, finalmente, em nível **nacional**.
-      3.  **Resultado Final:** A lista de 3 concorrentes deve refletir essa prioridade. Comece com os concorrentes locais e, se necessário, complete a lista com concorrentes regionais ou nacionais, sempre mencionando a localização deles se for diferente da empresa analisada (ex: 'Nome do Concorrente (Outra Cidade/Estado)'). O fator mais importante é a similaridade do negócio.
+      3.  **Resultado Final:** A lista de 3 concorrentes deve refletir essa prioridade. Para cada concorrente, você DEVE fornecer o nome e um link de referência (website, Google Maps ou perfil de rede social).
 
       **REGRAS CRÍTICAS:**
       1.  **FORMATO:** Sua resposta DEVE ser um objeto JSON válido que corresponda exatamente ao schema fornecido, e NADA MAIS.
@@ -547,7 +557,7 @@ export const generateBrandboardPart1 = async (companyInfo: ValidationData, onChu
       --- FIM DO DIAGNÓSTICO ---
     `;
     const stream = await ai.models.generateContentStream({
-        model: "gemini-2.5-pro",
+        model: "gemini-3-pro-preview",
         contents: prompt,
         config: {
             temperature: 0.2,
@@ -660,7 +670,7 @@ export const generateBrandboardPart2 = async (companyInfo: ValidationData, conte
       Traduza a estratégia da Parte 1 em diretrizes verbais claras. O tom de voz deve refletir os arquétipos.
     `;
     const stream = await ai.models.generateContentStream({
-        model: "gemini-2.5-pro",
+        model: "gemini-3-pro-preview",
         contents: prompt,
         config: {
             temperature: 0.2,
@@ -713,12 +723,10 @@ const part3Schema = {
                 colorPalette: {
                     type: Type.OBJECT,
                     properties: {
-                        primary: { type: Type.ARRAY, items: colorSchema, description: "Cores principais da marca." },
-                        secondary: { type: Type.ARRAY, items: colorSchema, description: "Cores secundárias de apoio." },
-                        neutral: { type: Type.ARRAY, items: colorSchema, description: "Cores neutras (tons de cinza, etc.)." },
-                        highlights: { type: Type.ARRAY, items: colorSchema, description: "Cores de destaque para CTAs." },
+                        primary: { type: Type.ARRAY, items: colorSchema, description: "Exatamente 2 cores principais da marca." },
+                        secondary: { type: Type.ARRAY, items: colorSchema, description: "Exatamente 3 cores secundárias de apoio." },
                     },
-                    required: ['primary', 'secondary', 'neutral', 'highlights'],
+                    required: ['primary', 'secondary'],
                 },
                 typography: {
                     type: Type.OBJECT,
@@ -756,7 +764,7 @@ export const generateBrandboardPart3 = async (companyInfo: ValidationData, conte
     onProgress?.('Etapa 3 de 4: Criando a identidade visual...');
     let logoInstruction: string;
     if (companyInfo.uploadedLogoAnalysis) {
-        logoInstruction = `O usuário enviou um logotipo. Use a análise do logotipo fornecida como a fonte da verdade para a identidade visual. A descrição do logo DEVE ser a da análise. A paleta de cores DEVE ser a da análise. O 'prompt' do logo deve ser uma string vazia.`;
+        logoInstruction = `O usuário enviou um logotipo. Use a análise do logotipo fornecida como a fonte da verdade para a identidade visual. A descrição do logo DEVE ser a da análise. A paleta de cores DEVE ser inspirada na análise. O 'prompt' do logo deve ser uma string vazia.`;
     } else if (companyInfo.logoUrl) {
         logoInstruction = `A empresa já possui um logotipo online. Descreva-o objetivamente na descrição, explicando seu conceito. O 'prompt' do logo deve ser uma string vazia. Crie uma paleta de cores coesa baseada neste logo e na identidade da marca.`;
     } else {
@@ -773,14 +781,15 @@ export const generateBrandboardPart3 = async (companyInfo: ValidationData, conte
       Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`PENSAMENTO: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
       Exemplos:
       PENSAMENTO: Elaborando o conceito do logotipo com base na instrução específica e nos arquétipos.
-      PENSAMENTO: Construindo uma paleta de cores funcional que reflete a personalidade da marca.
+      PENSAMENTO: Construindo uma paleta de cores funcional com 2 cores primárias e 3 secundárias que reflita a personalidade da marca.
       PENSAMENTO: Selecionando uma combinação de fontes (tipografia) que seja legível e alinhada à identidade.
       PENSAMENTO: Definindo um estilo fotográfico e criando 3 prompts de imagem para exemplificar.
       PENSAMENTO: Compilando os elementos visuais no formato JSON solicitado.
 
       **REGRAS CRÍTICAS:**
-      1.  **FOTOGRAFIA:** Você DEVE gerar 3 prompts de imagem distintos e criativos no campo 'imagePrompts'.
-      2.  **FORMATO:** Sua resposta DEVE ser um objeto JSON válido que corresponda exatamente ao schema fornecido, e NADA MAIS.
+      1.  **PALETA DE CORES:** Você DEVE gerar uma paleta com exatamente 2 cores primárias e 3 cores secundárias.
+      2.  **FOTOGRAFIA:** Você DEVE gerar 3 prompts de imagem distintos e criativos no campo 'imagePrompts'.
+      3.  **FORMATO:** Sua resposta DEVE ser um objeto JSON válido que corresponda exatamente ao schema fornecido, e NADA MAIS.
 
       --- CONTEXTO DA MARCA (PARTES 1 E 2 APROVADAS) ---
       ${JSON.stringify(context)}
@@ -792,10 +801,10 @@ export const generateBrandboardPart3 = async (companyInfo: ValidationData, conte
 
       **Instrução Específica para o Logo:** ${logoInstruction}
       
-      Pense como um gestor de marca: a paleta de cores deve ser funcional? A tipografia é legível? O estilo de fotografia atrai o público-alvo correto?
+      Pense como um gestor de marca: a paleta de cores é funcional? A tipografia é legível? O estilo de fotografia atrai o público-alvo correto?
     `;
     const stream = await ai.models.generateContentStream({
-        model: "gemini-2.5-pro",
+        model: "gemini-3-pro-preview",
         contents: prompt,
         config: {
             temperature: 0.2,
@@ -899,7 +908,7 @@ export const generateBrandboardPart4 = async (companyInfo: ValidationData, conte
       Sua função é traduzir o brandboard em um plano prático.
     `;
     const stream = await ai.models.generateContentStream({
-        model: "gemini-2.5-pro",
+        model: "gemini-3-pro-preview",
         contents: prompt,
         config: {
             temperature: 0.2,
@@ -1003,7 +1012,7 @@ export const regenerateFieldText = async (
       Sua resposta deve ser APENAS o novo texto aprimorado para o campo "${fieldKey}". Seja conciso e mantenha a consistência. Não adicione aspas, explicações ou qualquer outra formatação. Apenas o texto puro. Se o campo for um objeto JSON ou array, retorne o JSON correspondente.
     `;
     const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
+        model: "gemini-3-pro-preview",
         contents: prompt
     });
     return response.text.trim();
@@ -1041,7 +1050,7 @@ export const refineSubsequentFields = async (
     `;
 
     const stream = await ai.models.generateContentStream({
-        model: "gemini-2.5-pro",
+        model: "gemini-3-pro-preview",
         contents: prompt,
         config: {
             temperature: 0.2,

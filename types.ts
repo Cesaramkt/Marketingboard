@@ -55,7 +55,7 @@ export interface BrandboardData {
     };
     audienceAndPositioning: {
       targetAudience: string;
-      competitors: string[];
+      competitors: Array<{ name: string; link: string; }>;
       differentiators: string[];
       positioningStatement: string;
     };
@@ -87,8 +87,6 @@ export interface BrandboardData {
     colorPalette: {
       primary: Array<{ name: string; hex: string }>;
       secondary: Array<{ name: string; hex: string }>;
-      neutral: Array<{ name: string; hex: string }>;
-      highlights: Array<{ name: string; hex: string }>;
     };
     typography: {
       primary: { font: string; usage: string };

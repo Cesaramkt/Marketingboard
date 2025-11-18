@@ -53,15 +53,15 @@ export const UrlInputForm: React.FC<UrlInputFormProps> = ({ onSubmit, isLoading,
   return (
     <div className="w-full">
       <div className="max-w-2xl mx-auto">
-        <button onClick={onBack} className="flex items-center text-sm text-slate-400 hover:text-slate-200 mb-4 group">
+        <button onClick={onBack} className="flex items-center text-sm text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 mb-4 group">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           Voltar
         </button>
-        <div className="bg-slate-800/50 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-700">
-          <h2 className="text-3xl font-bold text-center text-slate-100 mb-2 font-['Playfair_Display',_serif]">Informações da Empresa</h2>
-          <p className="text-center text-slate-400 mb-8">Preencha os dados para a IA analisar e criar seu marketingboard. Se tiver um site, a análise será mais precisa.</p>
+        <div className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700">
+          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-slate-100 mb-2 font-['Playfair_Display',_serif]">Informações da Empresa</h2>
+          <p className="text-center text-gray-600 dark:text-slate-400 mb-8">Preencha os dados para a IA analisar e criar seu marketingboard. Se tiver um site, a análise será mais precisa.</p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
               name="name"
@@ -70,7 +70,7 @@ export const UrlInputForm: React.FC<UrlInputFormProps> = ({ onSubmit, isLoading,
               onChange={handleChange}
               placeholder="Nome da Empresa *"
               disabled={isLoading}
-              className="w-full bg-slate-700 text-slate-100 placeholder-slate-400 px-4 py-3 rounded-lg border border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 disabled:opacity-50"
+              className="w-full bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 disabled:opacity-50"
               required
             />
             <input
@@ -80,7 +80,7 @@ export const UrlInputForm: React.FC<UrlInputFormProps> = ({ onSubmit, isLoading,
               onChange={handleChange}
               placeholder="Endereço *"
               disabled={isLoading}
-              className="w-full bg-slate-700 text-slate-100 placeholder-slate-400 px-4 py-3 rounded-lg border border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 disabled:opacity-50"
+              className="w-full bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 disabled:opacity-50"
               required
             />
             <input
@@ -90,7 +90,7 @@ export const UrlInputForm: React.FC<UrlInputFormProps> = ({ onSubmit, isLoading,
               onChange={handleChange}
               placeholder="Cidade *"
               disabled={isLoading}
-              className="w-full bg-slate-700 text-slate-100 placeholder-slate-400 px-4 py-3 rounded-lg border border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 disabled:opacity-50"
+              className="w-full bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 disabled:opacity-50"
               required
             />
             <input
@@ -100,7 +100,7 @@ export const UrlInputForm: React.FC<UrlInputFormProps> = ({ onSubmit, isLoading,
               onChange={handleChange}
               placeholder="Site (opcional, ex: www.empresa.com.br)"
               disabled={isLoading}
-              className="w-full bg-slate-700 text-slate-100 placeholder-slate-400 px-4 py-3 rounded-lg border border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 disabled:opacity-50"
+              className="w-full bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 disabled:opacity-50"
             />
             <input
               name="instagram"
@@ -109,7 +109,7 @@ export const UrlInputForm: React.FC<UrlInputFormProps> = ({ onSubmit, isLoading,
               onChange={handleChange}
               placeholder="Instagram (opcional, ex: @perfil ou URL)"
               disabled={isLoading}
-              className="w-full bg-slate-700 text-slate-100 placeholder-slate-400 px-4 py-3 rounded-lg border border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 disabled:opacity-50"
+              className="w-full bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 disabled:opacity-50"
             />
             <div className="pt-4">
               <button

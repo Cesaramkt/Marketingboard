@@ -67,12 +67,12 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ message, streami
   }, [thinkingSteps]);
 
   return (
-    <div className="fixed inset-0 bg-slate-900 flex flex-col justify-center items-center z-50 p-4 overflow-hidden">
+    <div className="fixed inset-0 bg-white dark:bg-slate-900 flex flex-col justify-center items-center z-50 p-4 overflow-hidden transition-colors duration-300">
         {/* Background Blobs */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-            <div className="absolute -top-40 -left-40 w-96 h-96 bg-fuchsia-500 rounded-full filter blur-3xl opacity-20 animate-blob"></div>
-            <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-500 rounded-full filter blur-3xl opacity-20 animate-blob animation-delay-2"></div>
-            <div className="absolute -bottom-20 left-20 w-80 h-80 bg-violet-600 rounded-full filter blur-3xl opacity-20 animate-blob animation-delay-4"></div>
+            <div className="absolute -top-40 -left-40 w-96 h-96 bg-fuchsia-300 dark:bg-fuchsia-500 rounded-full filter blur-3xl opacity-40 dark:opacity-20 animate-blob"></div>
+            <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-300 dark:bg-cyan-500 rounded-full filter blur-3xl opacity-40 dark:opacity-20 animate-blob animation-delay-2"></div>
+            <div className="absolute -bottom-20 left-20 w-80 h-80 bg-violet-300 dark:bg-violet-600 rounded-full filter blur-3xl opacity-40 dark:opacity-20 animate-blob animation-delay-4"></div>
         </div>
         
         {/* Content */}
@@ -82,21 +82,21 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ message, streami
                 <AppLogo />
                 </div>
             </div>
-            <p className="text-slate-100 text-xl font-medium animate-pulse text-center">{message}</p>
+            <p className="text-gray-800 dark:text-slate-100 text-xl font-medium animate-pulse text-center">{message}</p>
             
             {streamingText !== undefined && thinkingSteps.length > 0 ? (
                 <div 
                 ref={scrollContainerRef}
-                className="mt-6 w-full max-w-2xl bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-lg max-h-[50vh] overflow-y-auto p-6 font-sans text-slate-300 border border-white/10"
+                className="mt-6 w-full max-w-2xl bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-lg max-h-[50vh] overflow-y-auto p-6 font-sans text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-white/10"
                 >
                     <ul className="space-y-3">
                         {thinkingSteps.map((step, index) => {
                              const isLastStep = index === thinkingSteps.length - 1;
                              return (
-                                <li key={index} className={`flex items-center gap-3 transition-opacity duration-300 ${isLastStep ? 'text-white' : 'text-slate-400'}`}>
+                                <li key={index} className={`flex items-center gap-3 transition-opacity duration-300 ${isLastStep ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-slate-400'}`}>
                                     {isLastStep 
-                                        ? <Spinner className="h-5 w-5 text-fuchsia-400 flex-shrink-0" />
-                                        : <CheckIcon className="h-5 w-5 text-green-400 flex-shrink-0" />
+                                        ? <Spinner className="h-5 w-5 text-fuchsia-500 dark:text-fuchsia-400 flex-shrink-0" />
+                                        : <CheckIcon className="h-5 w-5 text-green-500 dark:text-green-400 flex-shrink-0" />
                                     }
                                     <span className={isLastStep ? 'font-medium' : ''}>{step}</span>
                                 </li>
@@ -105,7 +105,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ message, streami
                     </ul>
                 </div>
             ) : (
-                <p className="text-slate-400 text-sm mt-4 max-w-md text-center transition-opacity duration-500">{fact}</p>
+                <p className="text-gray-500 dark:text-slate-400 text-sm mt-4 max-w-md text-center transition-opacity duration-500">{fact}</p>
             )}
         </div>
         <style>{`
