@@ -17,13 +17,6 @@ const CloseIcon: React.FC<{className?: string}> = ({className}) => (
     </svg>
 );
 
-const CameraIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-);
-
 // Helper to convert Base64 to File
 const base64ToFile = (base64Data: string, filename: string, mimeType: string): File => {
     const byteString = atob(base64Data);
@@ -48,7 +41,6 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [apiLogoUrl, setApiLogoUrl] = useState<string | null>(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const processImage = async (file: File) => {
     setLogoFile(file);
@@ -93,13 +85,6 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
         return;
     }
     processImage(file);
-  };
-  
-  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-          processImage(file);
-      }
   };
 
   useEffect(() => {
@@ -239,32 +224,8 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
         <div className="bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-lg p-6 text-left mb-8 space-y-4">
             <h3 className="font-semibold text-gray-800 dark:text-slate-200">Você já tem um logotipo?</h3>
             
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                <div className="sm:col-span-3">
-                    <FileUploader onFileSelect={handleFileSelect} uploadedFileName={logoFile?.name} disabled={noLogo || isEnhancing} />
-                </div>
-                
-                {/* Botão de Câmera Mobile */}
-                <div className="sm:col-span-1">
-                    <input 
-                        type="file" 
-                        accept="image/*" 
-                        capture="environment" 
-                        ref={cameraInputRef} 
-                        onChange={handleCameraCapture} 
-                        className="hidden" 
-                        disabled={noLogo || isEnhancing}
-                    />
-                    <button 
-                        onClick={() => cameraInputRef.current?.click()}
-                        disabled={noLogo || isEnhancing}
-                        className="w-full h-full min-h-[60px] flex flex-col items-center justify-center bg-violet-100 dark:bg-violet-900/30 hover:bg-violet-200 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Tirar foto do logo"
-                    >
-                        <CameraIcon className="h-6 w-6 mb-1" />
-                        <span className="text-xs font-bold">Câmera</span>
-                    </button>
-                </div>
+            <div>
+              <FileUploader onFileSelect={handleFileSelect} uploadedFileName={logoFile?.name} disabled={noLogo || isEnhancing} />
             </div>
 
             <div className="flex items-center">
