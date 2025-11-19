@@ -43,8 +43,15 @@ export interface CompanyValue {
   attributes?: string[];
 }
 
+export interface ProductStrategy {
+  category: string;
+  description: string;
+  portfolioStructure: string;
+}
+
 export interface BrandboardData {
   part1: {
+    productStrategy: ProductStrategy;
     purpose: string;
     mission: string;
     vision: string;

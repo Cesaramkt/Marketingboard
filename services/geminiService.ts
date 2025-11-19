@@ -129,7 +129,7 @@ export const findCompanyCandidates = async (
 
     const prompt = `
       # PERSONA: Assistente de Pesquisa OSINT (Open Source Intelligence)
-      Sua única missão é encontrar empresas candidatas com base nos dados do usuário e retornar uma lista estruturada. Você é metódico, preciso e entende a importância da localização. Sua prioridade é evitar um resultado vazio.
+      Sua única missão é encontrar empresas candidatas com base nos dados do usuário e retornar uma lista estruturada. Você é metódico, preciso e entende a importância da localização e da presença digital.
 
       **TAREFA:** Encontre até 3 empresas que correspondam à busca abaixo, seguindo a hierarquia de regras.
 
@@ -144,12 +144,12 @@ export const findCompanyCandidates = async (
       - Instagram (Opcional): "${instagram || 'Não fornecido'}"
       
       **REGRAS CRÍTICAS DE BUSCA E CLASSIFICAÇÃO (SIGA ESTA ORDEM):**
-      1.  **PRIORIDADE 1 - CORRESPONDÊNCIA NA CIDADE:** A busca principal DEVE focar em encontrar a empresa "${name}" na cidade de "${city}". Se encontrar uma correspondência exata ou muito provável, ela deve ser o primeiro item da lista com o 'matchType' "EXATO_NA_CIDADE".
-      2.  **PRIORIDADE 2 - CORRESPONDÊNCIA FORA DA CIDADE:** Se a busca na cidade principal for inconclusiva, procure pela empresa "${name}" em outras localidades. Se encontrar, adicione-as à lista com o 'matchType' "NOME_CORRETO_OUTRA_CIDADE".
-      3.  **PRIORIDADE 3 - SUGESTÕES INTELIGENTES (ÚLTIMO RECURSO):** Se as buscas anteriores falharem, encontre empresas com nomes *semelhantes* ou no mesmo *segmento de negócio* dentro da cidade de "${city}". Marque-as com o 'matchType' "SUGESTAO". O objetivo é sempre fornecer uma alternativa relevante ao usuário.
-      4.  **LÓGICA DE PREENCHIMENTO:** Para cada candidato, preencha todos os campos do schema JSON. Se uma informação não for encontrada, use "Não encontrado".
-      5.  **SEM RESULTADOS (CASO EXTREMO):** Somente se, e somente se, após seguir as 3 prioridades acima você não encontrar absolutamente NADA, retorne um array JSON vazio: [].
-      6.  **FOCO NOS FATOS:** Não invente descrições. Extraia uma descrição concisa (1 frase) do site oficial ou perfil do Google Meu Negócio.
+      1.  **PRIORIDADE 1 - CORRESPONDÊNCIA NA CIDADE:** A busca principal DEVE focar em encontrar a empresa "${name}" na cidade de "${city}".
+      2.  **USO DO INSTAGRAM:** Se o usuário forneceu o Instagram "${instagram || ''}", use-o como uma "chave mestra" para confirmar a identidade da empresa. Pesquise pelo nome de usuário no Google para encontrar informações associadas (como endereço na bio ou site linkado).
+      3.  **PRIORIDADE 2 - CORRESPONDÊNCIA FORA DA CIDADE:** Se a busca na cidade principal for inconclusiva, procure pela empresa "${name}" em outras localidades.
+      4.  **PRIORIDADE 3 - SUGESTÕES INTELIGENTES:** Se as buscas anteriores falharem, encontre empresas com nomes semelhantes ou no mesmo segmento na cidade.
+      5.  **LÓGICA DE PREENCHIMENTO:** Para cada candidato, preencha todos os campos do schema JSON. Se o endereço exato não estiver disponível, coloque a cidade.
+      6.  **DESCRIÇÃO:** Extraia uma descrição concisa (1 frase) do site oficial, perfil do Google ou **Bio do Instagram**.
       
       **FORMATO OBRIGATÓRIO:** Sua resposta DEVE ser um array JSON válido e NADA MAIS. Formate a resposta dentro de um bloco de código markdown JSON (\`\`\`json ... \`\`\`). O schema para cada objeto no array deve ser: { "id": string, "companyName": string, "address": string, "websiteUrl": string, "description": string, "matchType": "EXATO_NA_CIDADE" | "NOME_CORRETO_OUTRA_CIDADE" | "SUGESTAO" }.
     `;
@@ -181,7 +181,9 @@ export const getFullCompanyInfo = async(candidate: CompanyCandidate): Promise<Va
     const searchTerms = [
         candidate.companyName,
         candidate.address !== 'Não encontrado' ? candidate.address : '',
-        candidate.websiteUrl !== 'Não encontrado' ? candidate.websiteUrl : ''
+        candidate.websiteUrl !== 'Não encontrado' ? candidate.websiteUrl : '',
+        "Instagram",
+        "Facebook"
     ].filter(Boolean).join(', ');
 
     const prompt = `
@@ -195,18 +197,21 @@ export const getFullCompanyInfo = async(candidate: CompanyCandidate): Promise<Va
         - Endereço: ${candidate.address}
         - Website: ${candidate.websiteUrl}
 
-        **TAREFA:** Conduza uma busca detalhada usando as ferramentas disponíveis para extrair as seguintes informações. Foque em fontes oficiais (site da empresa, perfil do Google Meu Negócio, redes sociais oficiais).
+        **TAREFA:** Conduza uma busca detalhada usando as ferramentas disponíveis para extrair as seguintes informações. 
+        
+        **ATENÇÃO AO INSTAGRAM:** Pesquise ativamente pelo perfil do Instagram da empresa se o usuário não forneceu. Se encontrar, extraia a URL. Muitas vezes a "descrição" real da empresa está na Bio do Instagram.
 
         **ESTRUTURA DA RESPOSTA (Use este formato exato):**
         Nome da Empresa: ${candidate.companyName}
-        Descrição: ${candidate.description}
+        Descrição: [Descrição detalhada. Se o site for fraco, use a Bio do Instagram ou LinkedIn como base.]
         Endereço: [Endereço completo e verificado]
         Website: [URL do site oficial]
-        Logo URL: [URL direta e funcional para a imagem do logotipo]
-        Resumo das Avaliações: [Resumo de 1-2 frases do sentimento geral das avaliações dos clientes, seguido por um ou dois exemplos de avaliação real entre aspas que capturem a essência do feedback.]
+        Logo URL: [URL direta e funcional para a imagem do logotipo, preferencialmente de alta qualidade]
+        Resumo das Avaliações: [Resumo de 1-2 frases do sentimento geral das avaliações dos clientes, seguido por um ou dois exemplos de avaliação real entre aspas.]
         Redes Sociais:
-        - Instagram: [URL completa do perfil]
-        - Facebook: [URL completa do perfil]
+        - Instagram: [URL completa do perfil, se encontrado]
+        - Facebook: [URL completa do perfil, se encontrado]
+        - LinkedIn: [URL completa do perfil, se encontrado]
     `;
 
      const response = await ai.models.generateContent({
@@ -306,67 +311,72 @@ Este documento é a fonte primária de verdade para a empresa "${data.companyNam
 };
 
 export const getCompanyAnalysis = async (companyInfo: ValidationData, onChunk?: (text: string) => void): Promise<{ analysisText: string, sources: Source[] }> => {
+    const instagramLink = companyInfo.socialMediaLinks?.find(l => l.platform.toLowerCase().includes('instagram'))?.url;
+    
     const searchTerms = [
         companyInfo.companyName,
         companyInfo.websiteUrl,
-        companyInfo.address
+        companyInfo.address,
+        instagramLink ? `Instagram ${companyInfo.companyName}` : null // Força busca no IG
     ].filter(Boolean).join(', ');
     
     const companyDossier = formatCompanyDataForDossier(companyInfo);
 
     const prompt = `
       # PERSONA: Consultor Estratégico de Marcas IA
-      Sua função é transformar dados e insights em uma estrutura de marketing clara, lógica e acionável. Você valoriza a clareza sobre a complexidade e a estratégia sobre a tática. Sua comunicação é direta, profissional e focada em gerar resultados para o negócio.
+      Sua função é transformar dados e insights em uma estrutura de marketing clara, lógica e acionável.
 
-      **TAREFA:** Conduza uma pesquisa aprofundada sobre a empresa-alvo e traduza os dados brutos em um diagnóstico estratégico claro e acionável. O objetivo é criar uma base sólida e factual para as próximas decisões de marketing.
+      **TAREFA:** Conduza uma pesquisa aprofundada sobre a empresa-alvo e traduza os dados brutos em um diagnóstico estratégico claro e acionável.
 
-      **FONTE DE DADOS PRIMÁRIA (OBRIGATÓRIO):** As informações a seguir foram validadas e formam o dossiê da empresa. Você DEVE usar este dossiê como sua principal fonte de verdade. Use a pesquisa na web apenas para complementar informações que não estão neste dossiê.
+      **FONTE DE DADOS PRIMÁRIA (OBRIGATÓRIO):** 
       --- INÍCIO DO DOSSIÊ DA EMPRESA ---
       ${companyDossier}
       --- FIM DO DOSSIÊ DA EMPRESA ---
 
-      **TERMOS DE BUSCA ADICIONAIS (se necessário para complementar):**
+      **TERMOS DE BUSCA ADICIONAIS:**
       ${searchTerms}
 
       **PROCESSO DE ANÁLISE PROFUNDA (SEJA METÓDICO):**
-      1.  **Análise de Reputação (VOZ DO CLIENTE - FOCO PRINCIPAL):** Esta é a seção mais importante do seu diagnóstico. Sua principal fonte para reputação são as avaliações da empresa no Google (Google Meu Negócio). PESQUISE ATIVAMENTE por elas. Dê um peso maior às avaliações mais recentes. Extraia a pontuação média, sintetize os principais pontos positivos e negativos em um resumo, identifique as palavras-chave mais recorrentes e liste os elogios e críticas mais comuns.
-      2.  **PONTO DE PARTIDA (Análise da Empresa):** Comece sua pesquisa USANDO O WEBSITE e as redes sociais fornecidas no dossiê. Se um perfil de Instagram foi fornecido, ele é uma fonte de informação prioritária. Analise-o profundamente.
-      3.  **Análise de Conteúdo (Site e Redes Sociais):** Leia os textos do site, posts de redes sociais. Qual é a mensagem principal? Qual o tom de voz? Como a empresa se posiciona?
-      4.  **Análise Visual:** Analise as imagens publicadas no site e, principalmente, nas redes sociais. Que tipo de fotografia usam? Qual a estética? Qual o padrão de design?
+      1.  **Análise de Reputação (Google Reviews):** Pesquise as avaliações no Google Meu Negócio. Resuma o sentimento, nota média e principais elogios/críticas.
+      2.  **RASPAGEM SEMÂNTICA DO INSTAGRAM (CRÍTICO):** 
+          *   Se houver um link do Instagram (${instagramLink || 'pesquise por um'}), USE A BUSCA DO GOOGLE para encontrar o conteúdo do perfil (Bio, legendas de posts recentes indexados, destaques).
+          *   Analise a **Bio**: Como eles se descrevem em 150 caracteres? Isso revela o posicionamento imediato.
+          *   Analise o **Conteúdo**: O que eles postam? Fotos de produto, bastidores, memes, conteúdo educativo?
+          *   Analise a **Linguagem**: Eles usam emojis? O tom é sério ou descontraído?
+      3.  **Análise do Site:** Mensagem principal e proposta de valor.
+      4.  **Análise Visual:** Cores, estilo fotográfico e design observados no Instagram e Site.
 
       **PROCESSO DE PENSAMENTO ESTRUTURADO (SIMULAÇÃO):**
-      Antes de gerar a resposta final, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`PENSAMENTO: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
-      Exemplos:
-      PENSAMENTO: Prioridade máxima: pesquisando avaliações no Google Meu Negócio para ${companyInfo.companyName}.
-      PENSAMENTO: Sintetizando as avaliações de clientes diretamente do Google para extrair pontuação, resumo e palavras-chave, priorizando as mais recentes.
-      PENSAMENTO: Analisando o tom de voz e o estilo visual das redes sociais para definir a personalidade da comunicação.
-      PENSAMENTO: Compilando os insights em um diagnóstico estratégico estruturado.
+      Gere de 3 a 5 linhas de pensamento (PENSAMENTO: ...) antes da resposta final.
+      Exemplo:
+      PENSAMENTO: Acessando dados públicos do Instagram via busca para ler a Bio e entender a "vibe" da marca.
+      PENSAMENTO: Cruzando a promessa da Bio do Instagram com as reclamações no Google Reviews para ver se há coerência.
 
       **ESTRUTURA DO SEU DIAGNÓSTICO (sua resposta DEVE seguir esta estrutura):**
-      Sintetize suas descobertas em um relatório conciso, usando TÍTULOS EM MARKDOWN (##). Explique o porquê de cada ponto.
+      Use TÍTULOS EM MARKDOWN (##).
 
       ## Diagnóstico Rápido
-      Um parágrafo de resumo que identifica o principal ponto forte e o principal gargalo ou oportunidade de melhoria.
+      Um parágrafo de resumo que identifica o principal ponto forte e o principal gargalo.
 
       ## DNA da Marca (O que eles dizem ser)
-      - **Propósito Declarado:** Qual é a missão ou propósito que a empresa comunica?
-      - **Solução Oferecida:** O que a empresa vende e qual problema ela diz resolver?
+      - Propósito Declarado: Baseado na Bio do Instagram e Site.
+      - Solução Oferecida: O que vendem?
 
       ## Análise de Reputação e Mercado (O que os clientes dizem que eles são)
-      - **Pontuação Média (Google Meu Negócio):** Qual a pontuação de estrelas e o número de avaliações? (Ex: 4.7 de 5 estrelas com base em 231 avaliações). Se não encontrar, informe "Não encontrado".
-      - **Resumo Detalhado das Avaliações:** Um parágrafo resumindo o sentimento geral dos clientes. O que eles amam? Do que eles reclamam? Seja específico.
-      - **Palavras-chave de Reputação:** Uma lista com as 5-7 palavras ou termos mais citados nas avaliações (positivos e negativos). Ex: "atendimento rápido", "preço justo", "demora na entrega", "produto de qualidade".
-      - **Elogios Recorrentes:** Liste em tópicos os pontos positivos mais citados.
-      - **Críticas Recorrentes:** Liste em tópicos as queixas mais comuns.
+      - Pontuação Média (Google): Nota e quantidade.
+      - Resumo das Avaliações: Sentimento geral.
+      - Palavras-chave de Reputação: Termos recorrentes.
+      - Elogios e Críticas: Listas de tópicos.
 
-      ## Análise de Comunicação
-      - **Personalidade da Marca (Tom de Voz):** Como a empresa se comunica? É formal, divertida, técnica?
-      - **Estilo Visual:** Descreva a estética das imagens e do design.
+      ## Análise de Comunicação (Foco no Digital)
+      - **Análise do Perfil (Instagram/Social):** Descreva o que foi encontrado na "raspagem" do perfil. A Bio é clara? O feed é vitrine ou conteúdo? 
+      - **Tom de Voz:** Como falam nas legendas?
+      - **Estilo Visual:** Estética observada.
 
       ## Síntese Estratégica
-      - **Público-Alvo Real:** Com base em tudo, descreva para quem a empresa realmente está vendendo.
-      - **Proposta de Valor Real:** Qual é o verdadeiro diferencial da empresa na prática?
-      - **Aviso Profissional:** Uma recomendação final e direta para o empreendedor.
+      - **Público-Alvo Real:** Para quem estão vendendo?
+      - **Proposta de Valor Real:** O diferencial na prática.
+      - **Aviso Profissional:** Recomendação final.
     `;
     
     const config: any = {
@@ -480,6 +490,16 @@ const part1Schema = {
         part1: {
             type: Type.OBJECT,
             properties: {
+                productStrategy: {
+                    type: Type.OBJECT,
+                    description: "Definição estratégica do que a empresa vende.",
+                    properties: {
+                        category: { type: Type.STRING, description: "A categoria macro do serviço ou produto (ex: 'Moda Feminina', 'Consultoria Tributária')." },
+                        description: { type: Type.STRING, description: "Descrição detalhada da oferta. Se for e-commerce, descreva o mix de produtos. Se for serviço, descreva a metodologia ou entrega." },
+                        portfolioStructure: { type: Type.STRING, description: "Como a oferta é organizada (ex: 'Catálogo com 5k SKUs focado em cauda longa' ou 'Serviço único de alto valor agregado')." }
+                    },
+                    required: ['category', 'description', 'portfolioStructure']
+                },
                 purpose: { type: Type.STRING, description: "O 'porquê' da empresa. Sua razão de existir além do lucro." },
                 mission: { type: Type.STRING, description: "O que a empresa faz, para quem, e como. Declaração de missão." },
                 vision: { type: Type.STRING, description: "O objetivo de longo prazo da empresa. Onde ela se vê no futuro." },
@@ -515,7 +535,7 @@ const part1Schema = {
                     required: ['targetAudience', 'competitors', 'differentiators', 'positioningStatement']
                 }
             },
-            required: ['purpose', 'mission', 'vision', 'values', 'archetypes', 'audienceAndPositioning']
+            required: ['productStrategy', 'purpose', 'mission', 'vision', 'values', 'archetypes', 'audienceAndPositioning']
         }
     },
     required: ['part1']
@@ -528,26 +548,23 @@ export const generateBrandboardPart1 = async (companyInfo: ValidationData, onChu
       # PERSONA: Consultor Estratégico de Marcas IA
       Sua função é transformar dados e insights em uma estrutura de marketing clara, lógica e acionável. Você valoriza a clareza sobre a complexidade e a estratégia sobre a tática.
 
-      **TAREFA:** Com base no diagnóstico inicial da empresa, sua missão é definir "O Núcleo da Marca (Quem Somos)". Esta é a fundação estratégica. CRIE e DEFINA o conteúdo para cada campo do schema JSON fornecido. Sua resposta DEVE preencher TODOS os campos obrigatórios com conteúdo estratégico, coeso e bem fundamentado.
+      **TAREFA:** Com base no diagnóstico inicial da empresa, sua missão é definir "O Núcleo da Marca (Quem Somos)". Esta é a fundação estratégica. CRIE e DEFINA o conteúdo para cada campo do schema JSON fornecido.
+
+      **ATENÇÃO ESPECIAL: ESTRATÉGIA DE PRODUTO (productStrategy)**
+      Você deve categorizar e descrever o que a empresa vende de forma inteligente.
+      - Se for um E-commerce com milhares de itens: Não liste produtos. Descreva as categorias, a abrangência do mix e a lógica do catálogo.
+      - Se for uma Empresa de Serviços: Descreva a metodologia, o tipo de entrega e a especialização.
+      - O objetivo é que qualquer pessoa que leia entenda O QUE é vendido e COMO é vendido, seja 1 serviço ou 5000 produtos.
 
       ${companyInfo.companyAnalysis?.includes('criação de uma marca do zero') 
-        ? `**MODO CRIAÇÃO:** Esta é uma marca nova. Use o nome e a descrição como inspiração para CRIAR um propósito, missão, visão, valores, arquétipos e um posicionamento de mercado convincente, preenchendo o schema JSON.`
-        : `**MODO ESTRATEGISTA:** Atue como um diretor de estratégia. INTERPRETE profundamente o diagnóstico e, com base nele, CRIE e DEFINA o conteúdo para cada campo do schema JSON. Use o diagnóstico como sua fonte de inspiração e base para criar uma estratégia de marca completa.`
+        ? `**MODO CRIAÇÃO:** Esta é uma marca nova. Use o nome e a descrição como inspiração para CRIAR um propósito, missão, visão, valores, arquétipos e um posicionamento de mercado convincente.`
+        : `**MODO ESTRATEGISTA:** Atue como um diretor de estratégia. INTERPRETE profundamente o diagnóstico e, com base nele, CRIE e DEFINA o conteúdo para cada campo do schema JSON.`
       }
       
       **PROCESSO DE PENSAMENTO ESTRUTURADO (SIMULAÇÃO):**
-      Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`PENSAMENTO: [Descrição da etapa]\`. Gere de 3 a 5 etapas.
-      Exemplos:
-      PENSAMENTO: Analisando o diagnóstico para extrair o propósito central da marca.
-      PENSAMENTO: Definindo arquétipos que se conectem com o público-alvo identificado.
-      PENSAMENTO: Cruzando os diferenciais com as dores do cliente para criar a declaração de posicionamento.
-      PENSAMENTO: Estruturando os valores da empresa de forma clara e memorável.
-      PENSAMENTO: Compilando todas as informações no formato JSON solicitado.
-
-      **INSTRUÇÃO ESPECÍFICA PARA CONCORRENTES:** Ao preencher o campo 'competitors', sua análise deve ser uma combinação de modelo de negócio e proximidade geográfica. Siga esta lógica:
-      1.  **Prioridade Máxima (Alvo Principal):** Encontre os concorrentes mais diretos que operam com o **mesmo modelo de negócio** E estão localizados na **mesma cidade** da empresa. Estes são os seus principais rivais.
-      2.  **Expansão Geográfica (Se necessário):** Se você não encontrar 3 concorrentes fortes na mesma cidade, expanda sua busca. Procure por empresas com o mesmo modelo de negócio no **estado** e, finalmente, em nível **nacional**.
-      3.  **Resultado Final:** A lista de 3 concorrentes deve refletir essa prioridade. Para cada concorrente, você DEVE fornecer o nome e um link de referência (website, Google Maps ou perfil de rede social).
+      Antes de gerar a resposta final em JSON, você DEVE simular seu processo de pensamento. Apresente cada etapa em uma nova linha, formatada EXATAMENTE como: \`PENSAMENTO: [Descrição da etapa]\`.
+      
+      **INSTRUÇÃO ESPECÍFICA PARA CONCORRENTES:** Ao preencher o campo 'competitors', siga a lógica de proximidade geográfica e modelo de negócio (cidade > estado > nacional). Forneça links.
 
       **REGRAS CRÍTICAS:**
       1.  **FORMATO:** Sua resposta DEVE ser um objeto JSON válido que corresponda exatamente ao schema fornecido, e NADA MAIS.
@@ -980,6 +997,37 @@ export const editImage = async (base64ImageData: string, mimeType: string, promp
         }
     }
     throw new Error('A edição de imagem falhou em produzir um resultado.');
+};
+
+export const enhanceLogo = async (base64ImageData: string, mimeType: string): Promise<string> => {
+    const prompt = "Isolate the logo in the image. Crop tightly around the logo, fix any perspective distortion (make it flat), improve sharpness and contrast, and set the background to pure white. The result should look like a high-quality digital logo asset.";
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              data: base64ImageData,
+              mimeType: mimeType,
+            },
+          },
+          {
+            text: prompt,
+          },
+        ],
+      },
+      config: {
+          responseModalities: [Modality.IMAGE],
+      },
+    });
+
+    for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          return part.inlineData.data;
+        }
+    }
+    throw new Error('Falha ao otimizar o logotipo.');
 };
 
 export const regenerateFieldText = async (

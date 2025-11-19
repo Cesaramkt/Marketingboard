@@ -69,21 +69,48 @@ export const BrandboardDisplay: React.FC<BrandboardDisplayProps> = ({
       const element = printRef.current;
       if (!element) return;
       
-      // Temporarily force light mode classes for PDF generation consistency
-      element.classList.add('pdf-light-theme');
-      element.classList.remove('pdf-dark-theme');
+      const originalButtonText = "Salvar em PDF";
+      const btn = document.activeElement as HTMLButtonElement;
+      if(btn && btn.innerText === originalButtonText) btn.innerText = "Gerando PDF...";
       
-      alert("Gerando PDF otimizado. Isso pode levar alguns segundos...");
+      // Create a clone to manipulate for PDF generation without affecting the live view
+      const clone = element.cloneNode(true) as HTMLElement;
+      
+      // Setup container for the clone to ensure it renders at desktop width
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.top = '-10000px';
+      container.style.left = '0';
+      // Force desktop width (1200px) to ensure the PDF looks like a document, not a mobile view
+      container.style.width = '1200px'; 
+      container.className = 'light'; // Ensure light mode inheritance context
+      
+      // Clean up the clone
+      clone.classList.remove('dark'); // Remove dark mode class
+      clone.classList.add('pdf-light-theme'); // Apply PDF specific theme
+      
+      // Remove interactive elements from clone to keep the PDF clean
+      const elementsToRemove = clone.querySelectorAll('button, input[type="file"], input[type="color"]');
+      elementsToRemove.forEach(el => el.remove());
+
+      container.appendChild(clone);
+      document.body.appendChild(container);
+
+      // Short delay to allow DOM layout to settle
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       try {
-          const canvas = await html2canvas(element, { 
-              scale: 2,
+          const canvas = await html2canvas(clone, { 
+              scale: 2, // High resolution
               useCORS: true,
               logging: false,
-              backgroundColor: '#ffffff' 
+              backgroundColor: '#ffffff',
+              width: 1200, // Match container width
+              windowWidth: 1200 // Simulate desktop viewport
           });
           
-          const imgData = canvas.toDataURL('image/jpeg', 0.75);
+          // Use higher quality JPEG (0.90) to preserve image details
+          const imgData = canvas.toDataURL('image/jpeg', 0.90);
 
           const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
           const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -117,7 +144,8 @@ export const BrandboardDisplay: React.FC<BrandboardDisplayProps> = ({
           console.error("Error generating PDF:", error);
           alert("Ocorreu um erro ao gerar o PDF. Tente novamente.");
       } finally {
-          element.classList.remove('pdf-light-theme');
+          document.body.removeChild(container);
+          if(btn && btn.innerText === "Gerando PDF...") btn.innerText = originalButtonText;
       }
   };
   
@@ -393,6 +421,32 @@ export const BrandboardDisplay: React.FC<BrandboardDisplayProps> = ({
                 <SectionCard title="Propósito"><EditableText value={part1?.purpose || ''} onUpdate={(v) => updateNestedField('part1.purpose', v)} /></SectionCard>
                 <SectionCard title="Missão"><EditableText value={part1?.mission || ''} onUpdate={(v) => updateNestedField('part1.mission', v)} /></SectionCard>
                 <SectionCard title="Visão"><EditableText value={part1?.vision || ''} onUpdate={(v) => updateNestedField('part1.vision', v)} /></SectionCard>
+                
+                {part1?.productStrategy && (
+                  <SectionCard title="Estratégia de Produtos & Serviços" className="md:col-span-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                              <p className="text-sm text-gray-500 dark:text-slate-500 uppercase tracking-wider font-semibold mb-1">Categoria</p>
+                              <div className="font-medium text-lg text-purple-700 dark:text-purple-300">
+                                  <EditableText value={part1.productStrategy.category} onUpdate={(v) => updateNestedField('part1.productStrategy.category', v)} />
+                              </div>
+                          </div>
+                           <div>
+                              <p className="text-sm text-gray-500 dark:text-slate-500 uppercase tracking-wider font-semibold mb-1">Estrutura do Portfólio</p>
+                               <div className="font-medium text-lg text-gray-800 dark:text-slate-200">
+                                  <EditableText value={part1.productStrategy.portfolioStructure} onUpdate={(v) => updateNestedField('part1.productStrategy.portfolioStructure', v)} />
+                              </div>
+                          </div>
+                          <div className="md:col-span-2">
+                               <p className="text-sm text-gray-500 dark:text-slate-500 uppercase tracking-wider font-semibold mb-2">Descrição Detalhada da Oferta</p>
+                               <div className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-lg border border-gray-200 dark:border-slate-700">
+                                  <EditableText value={part1.productStrategy.description} onUpdate={(v) => updateNestedField('part1.productStrategy.description', v)} />
+                              </div>
+                          </div>
+                      </div>
+                  </SectionCard>
+                )}
+
                  <SectionCard title="Valores" className="md:col-span-2">
                      <ul className="space-y-2">
                         {ensureArray(part1?.values).map((val: any, i) => {

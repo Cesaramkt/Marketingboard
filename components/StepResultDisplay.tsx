@@ -51,6 +51,7 @@ const EditableField: React.FC<{
 
 const TOPIC_CONFIG: Record<string, Record<string, { label: string; description: string }>> = {
     part1: {
+        productStrategy: { label: "Estratégia de Produtos & Serviços", description: "A definição clara do que vendemos, nossa categoria e como nossa oferta é estruturada." },
         purpose: { label: "Propósito (O Porquê)", description: "Por que esta empresa existe (além de ganhar dinheiro)? Qual problema maior ela se propõe a resolver no mundo?" },
         mission: { label: "Missão (O Que Fazemos)", description: "O que fazemos, para quem fazemos e como fazemos, de forma clara e objetiva." },
         vision: { label: "Visão (Onde Queremos Chegar)", description: "Qual é o nosso objetivo de longo prazo? Onde nos vemos em 5 ou 10 anos?" },
@@ -81,7 +82,7 @@ const TOPIC_CONFIG: Record<string, Record<string, { label: string; description: 
 
 
 const APPROVABLE_TOPICS: Record<number, string[]> = {
-    1: ['purpose', 'mission', 'vision', 'values', 'archetypes', 'audienceAndPositioning'],
+    1: ['productStrategy', 'purpose', 'mission', 'vision', 'values', 'archetypes', 'audienceAndPositioning'],
     2: ['voicePersonality', 'toneOfVoiceApplication', 'practicalGuidelines', 'slogan', 'keyMessages', 'contentPillars'],
     3: ['logo', 'colorPalette', 'typography', 'photographyStyle'],
     4: ['personas', 'customerJourney', 'channelMatrix'],
@@ -322,6 +323,25 @@ export const StepResultDisplay: React.FC<StepResultDisplayProps> = ({ title, ste
         switch (stepNumber) {
             case 1:
                 return (<>
+                    {renderTopic('productStrategy', () => (
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="font-semibold">Categoria de Serviço/Produto:</h4>
+                                <EditableField value={editableData.productStrategy?.category} onUpdate={v => updateEditableData('productStrategy.category', v)} />
+                            </div>
+                            <div>
+                                <h4 className="font-semibold">Estrutura do Portfólio:</h4>
+                                <p className="text-xs text-gray-500 dark:text-slate-500 mb-1">Como a oferta é organizada (Catálogo amplo, Serviços pacotes, etc.)</p>
+                                <EditableField value={editableData.productStrategy?.portfolioStructure} onUpdate={v => updateEditableData('productStrategy.portfolioStructure', v)} />
+                            </div>
+                            <div>
+                                <h4 className="font-semibold">Descrição Detalhada da Oferta:</h4>
+                                <div className="bg-gray-50 dark:bg-slate-700/30 p-3 rounded border-l-4 border-purple-500">
+                                    <EditableField value={editableData.productStrategy?.description} onUpdate={v => updateEditableData('productStrategy.description', v)} />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                     {renderTopic('purpose', () => <EditableField value={editableData.purpose} onUpdate={v => updateEditableData('purpose', v)} />)}
                     {renderTopic('mission', () => <EditableField value={editableData.mission} onUpdate={v => updateEditableData('mission', v)} />)}
                     {renderTopic('vision', () => <EditableField value={editableData.vision} onUpdate={v => updateEditableData('vision', v)} />)}
