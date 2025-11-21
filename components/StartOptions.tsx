@@ -34,17 +34,17 @@ export const StartOptions: React.FC<StartOptionsProps> = ({ onSelect }) => {
     return (
         <div className="max-w-4xl mx-auto">
             <h2 className="text-4xl font-bold text-center text-gray-900 dark:text-slate-100 mb-2 font-['Playfair_Display',_serif]">Como você quer começar?</h2>
-            <p className="text-center text-lg text-gray-600 dark:text-slate-400 mb-10 max-w-2xl mx-auto">Escolha uma opção para iniciar a criação do seu brandboard.</p>
+            <p className="text-center text-lg text-gray-600 dark:text-slate-400 mb-10 max-w-2xl mx-auto">Escolha uma opção para iniciar a criação do seu Marketingboard.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                <OptionCard 
                     title="Criar uma marca do zero"
-                    description="Ideal para quem tem uma nova ideia de negócio e precisa de uma identidade completa, do conceito ao logo."
+                    description="Ideal para quem tem uma nova ideia de negócio e precisa definir a estratégia completa de comunicação, do logo a estratégia."
                     icon={<LightbulbIcon />}
                     onClick={() => onSelect('NEW_IDEA')}
                />
                <OptionCard 
                     title="Analisar uma empresa existente"
-                    description="Forneça o site ou nome de uma empresa para extrair a identidade atual e gerar um brandboard a partir dela."
+                    description="Forneça o site ou nome de uma empresa para extrair a identidade atual e gerar um marketingboard completo."
                     icon={<BuildingIcon />}
                     onClick={() => onSelect('EXISTING_COMPANY')}
                />

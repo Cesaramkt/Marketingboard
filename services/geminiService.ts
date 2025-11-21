@@ -26,7 +26,7 @@ const parseJsonFromText = (text: string) => {
          throw new Error(`A resposta da IA não estava em um formato JSON válido. O resultado pode ter sido truncado. Início: ${text.substring(0, 200)}...`);
     }
 };
-
+// ... existing extractSources function ...
 const extractSources = (response: GenerateContentResponse): Source[] => {
     const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
     if (!groundingMetadata?.groundingChunks) {
@@ -51,8 +51,7 @@ const extractSources = (response: GenerateContentResponse): Source[] => {
     return uniqueSources;
 };
 
-// DEPRECATED in favor of findCompanyCandidates for a better validation flow.
-// This function remains for reference or potential fallback but should not be used in the primary flow.
+// ... existing parseValidationData ...
 const parseValidationData = (text: string, sources?: Source[]): ValidationData => {
     const data: Partial<ValidationData> = {};
 
@@ -116,7 +115,7 @@ const parseValidationData = (text: string, sources?: Source[]): ValidationData =
     };
 }
 
-
+// ... existing findCompanyCandidates ...
 export const findCompanyCandidates = async (
   name: string,
   city: string,
@@ -176,7 +175,7 @@ export const findCompanyCandidates = async (
     return parseJsonFromText(response.text);
 };
 
-
+// ... existing getFullCompanyInfo ...
 export const getFullCompanyInfo = async(candidate: CompanyCandidate): Promise<ValidationData> => {
     const searchTerms = [
         candidate.companyName,
@@ -229,44 +228,66 @@ export const getFullCompanyInfo = async(candidate: CompanyCandidate): Promise<Va
 
 
 export const createConceptFromIdea = async (
-    ideaName: string,
-    ideaDescription: string,
-    segment: string,
-    benchmarks: string
+    data: { name: string, description: string, segment: string, city: string, country: string, benchmarks: string, investment: string }
 ): Promise<ValidationData> => {
     const prompt = `
-      # PERSONA: Consultor Estratégico de Marcas IA
-      Sua função é transformar dados e insights em uma estrutura de marketing clara, lógica e acionável. Você valoriza a clareza sobre a complexidade e a estratégia sobre a tática. Sua comunicação é direta, profissional e focada em gerar resultados para o negócio.
+      # PERSONA: Consultor Estratégico de Negócios e Marcas IA
+      Sua função é transformar uma ideia bruta em um conceito de negócio ESTRUTURADO, REALISTA e INSPIRADOR. Você deve ser profissional, consciente e racional.
 
-      **TAREFA:** Um empreendedor forneceu uma ideia de negócio. Sua missão é transformar essa ideia bruta em um conceito de marca inicial que seja inspirador e comercialmente viável. Foque em criar um nome e uma descrição claros, diretos e focados no valor para o cliente.
+      **TAREFA:** Analise a ideia de negócio, o contexto de mercado e o NÍVEL DE INVESTIMENTO para desenvolver um briefing completo.
 
       **DADOS DO EMPENDEDOR:**
-      - Nome da Ideia/Marca: ${ideaName}
-      - Descrição da Ideia: ${ideaDescription}
-      - Segmento de Mercado: ${segment}
-      - Concorrentes/Inspirações: ${benchmarks}
+      - Nome da Ideia/Marca: ${data.name}
+      - Descrição da Ideia: ${data.description}
+      - Segmento de Mercado: ${data.segment}
+      - Localização: ${data.city}, ${data.country}
+      - Concorrentes/Inspirações: ${data.benchmarks}
+      - **INVESTIMENTO INICIAL: ${data.investment} (FATOR CRÍTICO)**
 
-      **SUA RESPOSTA DEVE CONTER:**
-      1.  **Nome da Empresa:** Um nome profissional e cativante, baseado na ideia.
-      2.  **Descrição:** Uma descrição de uma frase, clara e poderosa, explicando o que a empresa faz, para quem, e qual o benefício.
+      **PROCESSO DE ANÁLISE (Use Google Search):**
+      1.  **Análise de Viabilidade Financeira:** Considere o investimento. Um valor baixo (ex: até R$5.000) implica um modelo de negócio enxuto (online-first, sem estoque físico, serviços digitais). Um valor alto permite estruturas mais complexas (loja física, equipe, etc.). Seja realista na sua proposta.
+      2.  **Análise de Mercado:** Pesquise negócios similares no segmento e localização. Identifique tendências, concorrentes e oportunidades DENTRO DA REALIDADE FINANCEIRA.
+      3.  **Desenvolvimento do Conceito:** Com base na análise, refine a ideia. A estratégia de distribuição DEVE ser compatível com o investimento.
 
-      Sua resposta DEVE ser um objeto JSON válido, e NADA MAIS, sem markdown.
+      **EQUILÍBRIO ESTRATÉGICO:**
+      Seja racional, mas não pessimista. Reconheça que um bom marketing pode acelerar o crescimento. O briefing deve equilibrar as restrições atuais com o potencial de crescimento futuro. Por exemplo: "Comece com um e-commerce focado em dropshipping (baixo investimento), mas construa uma marca forte para, no futuro, internalizar o estoque e abrir uma loja conceito."
+
+      **ESTRUTURA DA RESPOSTA (JSON OBRIGATÓRIO):**
+      Sua resposta DEVE ser um objeto JSON válido, e NADA MAIS. Preencha todos os campos com textos detalhados e profissionais.
+
+      O JSON deve conter:
+      - **companyName:** Um nome profissional e cativante para a marca.
+      - **description:** Uma descrição de uma frase, poderosa e clara.
+      - **businessBriefing:** Um objeto com os seguintes campos:
+        - **productServiceIdea:** (Mínimo 2 parágrafos) Detalhe a proposta de valor. Que problema resolve? Como funciona? Qual o diferencial?
+        - **distributionStrategy:** (Mínimo 2 parágrafos) Como o produto/serviço chegará ao cliente? Seja realista considerando o investimento.
+        - **impactAndPotential:** (Mínimo 2 parágrafos) Qual o impacto esperado e o potencial de crescimento, considerando o equilíbrio entre realismo e ambição?
     `;
 
     const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
         contents: prompt,
         config: { 
-            temperature: 0.2,
+            tools: [{googleSearch: {}}],
+            temperature: 0.3,
             maxOutputTokens: 8192,
             responseMimeType: "application/json", 
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {
-                    companyName: { type: Type.STRING, description: "Nome da Empresa Sugerido" },
-                    description: { type: Type.STRING, description: "Descrição da empresa em uma frase." },
+                    companyName: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    businessBriefing: {
+                        type: Type.OBJECT,
+                        properties: {
+                            productServiceIdea: { type: Type.STRING },
+                            distributionStrategy: { type: Type.STRING },
+                            impactAndPotential: { type: Type.STRING },
+                        },
+                        required: ['productServiceIdea', 'distributionStrategy', 'impactAndPotential']
+                    }
                 },
-                required: ['companyName', 'description']
+                required: ['companyName', 'description', 'businessBriefing']
             }
         }
     });
@@ -276,12 +297,22 @@ export const createConceptFromIdea = async (
     return {
       companyName: parsed.companyName,
       description: parsed.description,
-      address: '',
+      businessBriefing: parsed.businessBriefing,
+      initialInvestment: data.investment,
+      companyAnalysis: `O usuário solicitou a criação de uma marca do zero com investimento de ${data.investment}. A IA desenvolveu o seguinte conceito de negócio:
+      - Nome: ${parsed.companyName}
+      - Conceito: ${parsed.description}
+      - Ideia de Produto/Serviço: ${parsed.businessBriefing.productServiceIdea}
+      - Estratégia de Distribuição: ${parsed.businessBriefing.distributionStrategy}
+      - Impacto e Potencial: ${parsed.businessBriefing.impactAndPotential}
+      A IA deve usar este briefing como base para todo o marketingboard.`,
+      address: `${data.city}, ${data.country}`,
       logoUrl: '',
-      companyAnalysis: `O usuário solicitou a criação de uma marca do zero a partir de uma ideia. O conceito inicial gerado pela IA é: Nome="${parsed.companyName}", Descrição="${parsed.description}". A IA deve atuar como um diretor de criação para desenvolver todos os elementos da marca a partir destes pontos, usando as informações originais do usuário como inspiração (Segmento: ${segment}, Benchmarks: ${benchmarks}).`
     };
 }
 
+
+// ... existing functions from here ...
 const formatCompanyDataForDossier = (data: ValidationData): string => {
     const socialLinks = data.socialMediaLinks?.map(l => `- ${l.platform}: ${l.url}`).join('\n') || 'Não disponível.';
     const content = `

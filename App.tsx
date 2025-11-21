@@ -11,6 +11,7 @@ import { IdeaForm } from './components/IdeaForm';
 import { AnalysisDisplay } from './components/AnalysisDisplay';
 import { CandidateSelectionModal } from './components/CandidateSelectionModal';
 import { Stepper } from './components/Stepper';
+import { ConceptBriefingDisplay } from './components/ConceptBriefingDisplay';
 import { 
   findCompanyCandidates,
   getFullCompanyInfo,
@@ -25,7 +26,7 @@ import {
 } from './services/geminiService';
 import type { ValidationData, BrandboardData, CompanyCandidate } from './types';
 
-type AppStep = 'HOME' | 'CHOOSE_MODE' | 'FORM_INPUT' | 'VALIDATING' | 'SELECTING_CANDIDATE' | 'CONFIRM_VALIDATION' | 'GENERATING' | 'CONFIRM_ANALYSIS' | 'CONFIRM_STEP' | 'FINAL_DISPLAY';
+type AppStep = 'HOME' | 'CHOOSE_MODE' | 'FORM_INPUT' | 'VALIDATING' | 'SELECTING_CANDIDATE' | 'CONFIRM_VALIDATION' | 'CONFIRM_CONCEPT' | 'GENERATING' | 'CONFIRM_ANALYSIS' | 'CONFIRM_STEP' | 'FINAL_DISPLAY';
 type FormMode = 'NEW_IDEA' | 'EXISTING_COMPANY';
 
 interface FormData {
@@ -189,21 +190,68 @@ function App() {
   };
 
 
-  const handleIdeaFormSubmit = useCallback(async (name: string, description: string, segment: string, benchmarks: string) => {
+  const handleIdeaFormSubmit = useCallback(async (data: {name: string, description: string, segment: string, city: string, country: string, benchmarks: string, investment: string}) => {
     setCurrentStep('VALIDATING');
     setLoadingMessage('Criando conceito da sua nova marca...');
     setBrandboardData({});
 
     try {
-        const data = await createConceptFromIdea(name, description, segment, benchmarks);
-        setValidationData(data);
-        setCurrentStep('CONFIRM_VALIDATION');
+        const validationResult = await createConceptFromIdea(data);
+        setValidationData(validationResult);
+        setCurrentStep('CONFIRM_CONCEPT');
     } catch (error) {
         handleError('Não foi possível criar o conceito da marca. Verifique os dados e tente novamente.', error);
     } finally {
         setLoadingMessage('');
     }
   }, []);
+
+  const startGenerationFromAnalysis = useCallback(async (dataForGeneration?: any) => {
+    const dataToUse = (dataForGeneration && typeof dataForGeneration === 'object' && dataForGeneration.companyName) 
+      ? dataForGeneration 
+      : validationData;
+
+    if (!dataToUse) return;
+
+    try {
+      setCurrentStep('GENERATING');
+      setStreamingText('');
+      setIsStreaming(true);
+      
+      const part1Data = await generateBrandboardPart1(dataToUse, setStreamingText, setLoadingMessage);
+      
+      setBrandboardData(part1Data);
+      setStepTitle('3. Núcleo da Marca');
+      setCurrentStep('CONFIRM_STEP');
+
+    } catch (error) {
+       handleError('Falha ao gerar a Parte 1 do marketingboard.', error);
+    } finally {
+        setIsStreaming(false);
+    }
+  }, [validationData]);
+
+  const handleConceptConfirm = useCallback(async (updatedData: ValidationData, logoFile: File | null) => {
+      let dataWithLogoAnalysis: ValidationData = { ...updatedData };
+
+      if (logoFile) {
+          setCurrentStep('GENERATING');
+          setLoadingMessage("Analisando seu logotipo...");
+          try {
+              const base64 = await fileToBase64(logoFile);
+              const logoAnalysis = await analyzeLogo(base64);
+              dataWithLogoAnalysis.uploadedLogoAnalysis = logoAnalysis;
+              dataWithLogoAnalysis.generatedLogo = `data:${logoFile.type};base64,${base64}`;
+              setGeneratedLogo(dataWithLogoAnalysis.generatedLogo);
+          } catch (error) {
+              handleError("Falha ao analisar o logotipo. Verifique o arquivo e tente novamente.", error);
+              return;
+          }
+      }
+      
+      setValidationData(dataWithLogoAnalysis);
+      startGenerationFromAnalysis(dataWithLogoAnalysis);
+  }, [startGenerationFromAnalysis]);
 
  const startAnalysis = useCallback(async (dataForAnalysis: ValidationData) => {
     let finalData = { ...dataForAnalysis };
@@ -233,28 +281,6 @@ function App() {
     }
 }, [formMode]);
 
-  const startGenerationFromAnalysis = useCallback(async () => {
-    if (!validationData) return;
-
-    try {
-      setCurrentStep('GENERATING');
-      setStreamingText('');
-      setIsStreaming(true);
-      
-      const part1Data = await generateBrandboardPart1(validationData, setStreamingText, setLoadingMessage);
-      
-      setBrandboardData(part1Data);
-      setStepTitle('1. O Núcleo da Marca (Quem Somos)');
-      setCurrentStep('CONFIRM_STEP');
-
-    } catch (error) {
-       handleError('Falha ao gerar a Parte 1 do marketingboard.', error);
-    } finally {
-        setIsStreaming(false);
-    }
-  }, [validationData]);
-
-
   const handleValidationConfirm = async (logoFile: File | null) => {
       let dataWithLogoAnalysis: ValidationData = { ...validationData! };
 
@@ -281,7 +307,6 @@ function App() {
     
     const newBrandboardData = JSON.parse(JSON.stringify(brandboardData));
     
-    // Assert the key type to avoid "any" type error
     const stepKey = `part${currentPart}` as keyof BrandboardData;
     newBrandboardData[stepKey] = updatedData;
 
@@ -306,14 +331,14 @@ function App() {
             const part2Data = await generateBrandboardPart2(finalValidationData, finalData, setStreamingText, setLoadingMessage);
             finalData = { ...finalData, ...part2Data };
             setBrandboardData(finalData);
-            setStepTitle('2. Identidade Verbal (Como Falamos)');
+            setStepTitle('4. Identidade Verbal');
             setCurrentStep('CONFIRM_STEP');
         } else if (currentPart === 2) { 
             setIsStreaming(true);
             const part3Data = await generateBrandboardPart3(finalValidationData, finalData, setStreamingText, setLoadingMessage);
             finalData = { ...finalData, ...part3Data };
             setBrandboardData(finalData);
-            setStepTitle('3. Identidade Visual (Como Nos Mostramos)');
+            setStepTitle('5. Identidade Visual');
             setCurrentStep('CONFIRM_STEP');
         } else if (currentPart === 3) { 
             setIsStreaming(false);
@@ -323,7 +348,7 @@ function App() {
                 const images = [];
                 for (let i = 0; i < prompts.length; i++) {
                     setLoadingMessage(`Gerando imagem de estilo (${i + 1} de ${prompts.length})...`);
-                    await new Promise(resolve => setTimeout(resolve, 2000)); 
+                    await new Promise(resolve => setTimeout(resolve, 15000)); 
                     const img = await generateImage(prompts[i], 'moodboard');
                     images.push(`data:image/png;base64,${img}`);
                 }
@@ -334,7 +359,7 @@ function App() {
             const part4Data = await generateBrandboardPart4(finalValidationData, finalData, setStreamingText, setLoadingMessage);
             finalData = { ...finalData, ...part4Data };
             setBrandboardData(finalData);
-            setStepTitle('4. Estratégia de Canal (Onde Atuamos)');
+            setStepTitle('6. Estratégia de Canais');
             setCurrentStep('CONFIRM_STEP');
         } else if (currentPart === 4) { 
             setIsStreaming(false);
@@ -372,17 +397,19 @@ function App() {
         setBrandboardData(newBrandboardData);
         
         const newStepNumber = Object.keys(newBrandboardData).length;
-        const titles = [
-          '1. O Núcleo da Marca (Quem Somos)', 
-          '2. Identidade Verbal (Como Falamos)', 
-          '3. Identidade Visual (Como Nos Mostramos)', 
-          '4. Estratégia de Canal (Onde Atuamos)'
-        ];
-        setStepTitle(titles[newStepNumber - 1]);
+        const titles: Record<number, string> = {
+            1: '3. Núcleo da Marca',
+            2: '4. Identidade Verbal',
+            3: '5. Identidade Visual',
+            4: '6. Estratégia de Canais',
+        };
+        setStepTitle(titles[newStepNumber]);
         setCurrentStep('CONFIRM_STEP');
 
+    } else if (currentStep === 'CONFIRM_STEP' && currentPart === 1) {
+        setCurrentStep(formMode === 'EXISTING_COMPANY' ? 'CONFIRM_ANALYSIS' : 'CONFIRM_CONCEPT');
     } else {
-        setCurrentStep('CONFIRM_VALIDATION');
+        setCurrentStep(formMode === 'EXISTING_COMPANY' ? 'CONFIRM_VALIDATION' : 'FORM_INPUT');
     }
   };
   
@@ -391,7 +418,7 @@ function App() {
     setCurrentStep('FORM_INPUT');
   };
 
-  const stepperSteps = ['Validação', 'Análise', 'Núcleo', 'Verbal', 'Visual', 'Canais', 'Final'];
+  const stepperSteps = ['1. Início', '2. Diagnóstico', '3. Núcleo da Marca', '4. Identidade Verbal', '5. Identidade Visual', '6. Estratégia de Canais', '7. Resultado Final'];
   const activeStepIndex = useMemo(() => {
       switch (currentStep) {
           case 'HOME':
@@ -400,31 +427,35 @@ function App() {
           case 'VALIDATING':
           case 'SELECTING_CANDIDATE':
           case 'CONFIRM_VALIDATION':
-              return 0;
+          case 'CONFIRM_CONCEPT':
+              return 0; // 1. Início
           case 'CONFIRM_ANALYSIS':
-              return 1;
+              return 1; // 2. Diagnóstico
           case 'CONFIRM_STEP':
-              return Object.keys(brandboardData).length + 1;
+              return Object.keys(brandboardData).length + 1; // +1 for validation/concept, +1 for analysis = index 2+
           case 'FINAL_DISPLAY':
-              return stepperSteps.length - 1;
+              return stepperSteps.length - 1; // 7. Resultado Final
           case 'GENERATING':
-              if (!validationData?.companyAnalysis) {
-                   return 1; // Generating 'Análise'
+              if (formMode === 'EXISTING_COMPANY' && !validationData?.companyAnalysis) {
+                   return 1; // Generating 'Diagnóstico'
               }
               const partCount = Object.keys(brandboardData).length;
-              if (partCount === 4) return 6; // Finalizing
-              return partCount + 2;
+              if (partCount === 0) return 2; // Generating 'Núcleo'
+              if (partCount === 4) return 6; // Finalizing for 'Resultado Final'
+              return partCount + 2; // Mapping parts to steps
           default:
               return 0;
       }
-  }, [currentStep, brandboardData, validationData, stepperSteps.length]);
+  }, [currentStep, brandboardData, validationData, formMode, stepperSteps.length]);
   
+  const isWideLayout = ['FORM_INPUT', 'VALIDATING', 'CONFIRM_STEP', 'CONFIRM_CONCEPT'].includes(currentStep);
+
   const renderContent = () => {
     switch(currentStep) {
       case 'HOME':
         return <HomePage onStart={() => setCurrentStep('CHOOSE_MODE')} />;
       case 'CHOOSE_MODE':
-        return <StartOptions onSelect={handleStartOptionSelect} />
+        return <div className="max-w-7xl mx-auto py-10 px-4 sm:px-8"><StartOptions onSelect={handleStartOptionSelect} /></div>;
       case 'FORM_INPUT':
       case 'VALIDATING':
         if (formMode === 'NEW_IDEA') {
@@ -439,18 +470,27 @@ function App() {
                   isLoading={currentStep === 'VALIDATING'} 
                   onBack={() => setCurrentStep('CHOOSE_MODE')}
                 />;
+      case 'CONFIRM_CONCEPT':
+        return (
+            <ConceptBriefingDisplay
+              validationData={validationData}
+              onConfirm={handleConceptConfirm}
+              onBack={() => setCurrentStep('FORM_INPUT')}
+            />
+        );
       case 'CONFIRM_ANALYSIS':
         return (
-          <AnalysisDisplay
-            analysisText={validationData?.companyAnalysis}
-            sources={validationData?.companyAnalysisSources}
-            onConfirm={startGenerationFromAnalysis}
-            onBack={() => setCurrentStep('CONFIRM_VALIDATION')}
-          />
+          <div className="max-w-7xl mx-auto py-10 px-4 sm:px-8">
+            <AnalysisDisplay
+              analysisText={validationData?.companyAnalysis}
+              sources={validationData?.companyAnalysisSources}
+              onConfirm={startGenerationFromAnalysis}
+              onBack={() => setCurrentStep('CONFIRM_VALIDATION')}
+            />
+          </div>
         );
       case 'CONFIRM_STEP':
         const stepNumber = Object.keys(brandboardData).length;
-        // Safe usage with type assertion or check
         const stepDataForDisplay = brandboardData[`part${stepNumber}` as keyof BrandboardData];
 
         return (
@@ -466,13 +506,15 @@ function App() {
         );
       case 'FINAL_DISPLAY':
         return (
-            <BrandboardDisplay 
-              brandboardData={brandboardData as BrandboardData}
-              validationData={validationData!} 
-              generatedLogo={generatedLogo}
-              photographyImages={photographyImages}
-              isEditable={true}
-            />
+            <div className="py-10 px-4 sm:px-8">
+                <BrandboardDisplay 
+                  brandboardData={brandboardData as BrandboardData}
+                  validationData={validationData!} 
+                  generatedLogo={generatedLogo}
+                  photographyImages={photographyImages}
+                  isEditable={true}
+                />
+            </div>
         );
       case 'GENERATING':
       default:
@@ -484,17 +526,20 @@ function App() {
     <div className="min-h-screen transition-colors duration-500 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-200 font-['Poppins',_sans_serif]">
       {['GENERATING', 'VALIDATING'].includes(currentStep) && <LoadingOverlay message={loadingMessage} streamingText={isStreaming ? streamingText : undefined} />}
       
-      {currentStep !== 'HOME' && (
-        <header className="pt-6 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 border-b border-gray-200 dark:border-slate-800 shadow-lg transition-colors duration-300">
+      {(currentStep !== 'HOME' && currentStep !== 'FINAL_DISPLAY') && (
+        <header className="pt-6 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 border-b border-gray-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
           <div className="max-w-7xl mx-auto">
-              <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center space-x-3 overflow-hidden cursor-pointer" onClick={() => resetState()}>
+              <div className="grid grid-cols-3 items-center mb-4">
+                  <div className="justify-self-start">
+                    {/* Placeholder for back button or other left-aligned items */}
+                  </div>
+                   <div className="flex items-center justify-center space-x-3 overflow-hidden cursor-pointer" onClick={() => resetState()}>
                       <AppLogo />
                       <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-slate-100 whitespace-nowrap font-['Playfair_Display',_serif]">
-                          Gerador de Marketingboard
+                          Marketingboard
                       </h1>
                   </div>
-                   <div className="flex items-center gap-4">
+                   <div className="flex items-center gap-4 justify-self-end">
                     <button 
                       onClick={toggleTheme} 
                       className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -502,20 +547,11 @@ function App() {
                     >
                       {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
                     </button>
-                    {currentStep === 'FINAL_DISPLAY' && (
-                      <button 
-                        onClick={() => resetState()}
-                        className="flex-shrink-0 bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-300 transform hover:scale-105"
-                      >
-                        Gerar Novo
-                      </button>
-                    )}
                   </div>
               </div>
               
-              {/* Stepper Container */}
-              <div className="w-full overflow-x-auto pb-2 scrollbar-hide">
-                  <div className="min-w-[700px] px-2 pb-4">
+              <div className="w-full">
+                  <div className="px-2 pb-4">
                     <Stepper steps={stepperSteps} currentStepIndex={activeStepIndex} />
                   </div>
               </div>
@@ -523,7 +559,7 @@ function App() {
         </header>
       )}
 
-      <main className={currentStep !== 'HOME' ? "py-10 px-4 sm:px-8" : ""}>
+      <main className={isWideLayout ? '' : 'py-10 px-4 sm:px-8'}>
         {renderContent()}
       </main>
 

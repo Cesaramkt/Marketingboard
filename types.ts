@@ -29,12 +29,18 @@ export interface ValidationData {
   websiteUrl?: string;
   reviewsSummary?: string;
   socialMediaLinks?: Array<{ platform: string; url: string; }>;
-  companyAnalysis?: string;
+  companyAnalysis?: string; // Usado para Diagnóstico (Empresa Existente) e Briefing (Nova Ideia)
   companyAnalysisSources?: Source[];
   sources?: Source[];
   uploadedLogoAnalysis?: LogoAnalysis;
   generatedLogo?: string;
-  locationWarning?: string; // Mantido por segurança, mas o novo fluxo deve minimizar seu uso
+  locationWarning?: string;
+  initialInvestment?: string; // Campo para o fluxo de "Nova Ideia"
+  businessBriefing?: { // Específico para o fluxo de "Nova Ideia"
+    productServiceIdea: string;
+    distributionStrategy: string;
+    impactAndPotential: string;
+  };
 }
 
 export interface CompanyValue {
