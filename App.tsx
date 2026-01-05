@@ -39,13 +39,13 @@ interface FormData {
 
 // Icons for Theme Toggle
 const SunIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
   </svg>
 );
 
 const MoonIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
   </svg>
 );
@@ -68,11 +68,14 @@ function App() {
   const [validationData, setValidationData] = useState<ValidationData | null>(null);
   const [companyCandidates, setCompanyCandidates] = useState<CompanyCandidate[] | null>(null);
   const [userCoords, setUserCoords] = useState<{latitude: number, longitude: number} | null>(null);
+  const [userInstagram, setUserInstagram] = useState<string>(''); // Store Instagram handle
   
   const [brandboardData, setBrandboardData] = useState<Partial<BrandboardData>>({});
   const [stepTitle, setStepTitle] = useState('');
   const [generatedLogo, setGeneratedLogo] = useState<string | null>(null);
   const [photographyImages, setPhotographyImages] = useState<string[]>([]);
+  const [archetypeImage, setArchetypeImage] = useState<string | null>(null);
+  const [personaImages, setPersonaImages] = useState<string[]>([]);
   
   const [streamingText, setStreamingText] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -128,9 +131,12 @@ function App() {
     setCompanyCandidates(null);
     setGeneratedLogo(null);
     setPhotographyImages([]);
+    setArchetypeImage(null);
+    setPersonaImages([]);
     setLoadingMessage('');
     setStreamingText('');
     setIsStreaming(false);
+    setUserInstagram('');
   };
   
   const startValidation = () => {
@@ -141,6 +147,7 @@ function App() {
 
   const handleFormSubmit = useCallback(async ({ name, address, city, site, instagram }: FormData) => {
     startValidation();
+    setUserInstagram(instagram); // Persist Instagram
     
     try {
         let finalUrl = site.trim();
@@ -156,7 +163,7 @@ function App() {
 
         if (candidates.length === 1 && candidates[0].matchType === 'EXATO_NA_CIDADE') {
             setLoadingMessage('Empresa encontrada! Obtendo detalhes...');
-            const fullInfo = await getFullCompanyInfo(candidates[0]);
+            const fullInfo = await getFullCompanyInfo(candidates[0], instagram);
             setValidationData(fullInfo);
             setCurrentStep('CONFIRM_VALIDATION');
         } else {
@@ -179,7 +186,7 @@ function App() {
     setLoadingMessage('Confirmando seleção e obtendo detalhes...');
     setCompanyCandidates(null);
     try {
-        const fullInfo = await getFullCompanyInfo(candidate);
+        const fullInfo = await getFullCompanyInfo(candidate, userInstagram);
         setValidationData(fullInfo);
         setCurrentStep('CONFIRM_VALIDATION');
     } catch (error) {
@@ -281,8 +288,10 @@ function App() {
     }
 }, [formMode]);
 
-  const handleValidationConfirm = async (logoFile: File | null) => {
-      let dataWithLogoAnalysis: ValidationData = { ...validationData! };
+  const handleValidationConfirm = async (updatedValidationData: ValidationData, logoFile: File | null) => {
+      // Use the updated data from the modal (which includes manual edits)
+      let dataWithLogoAnalysis: ValidationData = { ...updatedValidationData };
+      setValidationData(dataWithLogoAnalysis); // Update state
 
       if (logoFile) {
           setCurrentStep('GENERATING');
@@ -326,13 +335,25 @@ function App() {
         setStreamingText('');
         let finalData = { ...newBrandboardData };
 
-        if (currentPart === 1) { 
+        if (currentPart === 1) {
+            setIsStreaming(false);
+            if (updatedData.archetypes?.imagePrompt) {
+                setLoadingMessage('Gerando representação visual do arquétipo...');
+                try {
+                    const img = await generateImage(updatedData.archetypes.imagePrompt, 'archetype');
+                    setArchetypeImage(`data:image/png;base64,${img}`);
+                } catch (e) {
+                    console.error("Failed to generate archetype image", e);
+                }
+            }
+
             setIsStreaming(true);
             const part2Data = await generateBrandboardPart2(finalValidationData, finalData, setStreamingText, setLoadingMessage);
             finalData = { ...finalData, ...part2Data };
             setBrandboardData(finalData);
             setStepTitle('4. Identidade Verbal');
             setCurrentStep('CONFIRM_STEP');
+
         } else if (currentPart === 2) { 
             setIsStreaming(true);
             const part3Data = await generateBrandboardPart3(finalValidationData, finalData, setStreamingText, setLoadingMessage);
@@ -340,6 +361,7 @@ function App() {
             setBrandboardData(finalData);
             setStepTitle('5. Identidade Visual');
             setCurrentStep('CONFIRM_STEP');
+
         } else if (currentPart === 3) { 
             setIsStreaming(false);
             setLoadingMessage('Gerando ativos visuais...');
@@ -348,7 +370,7 @@ function App() {
                 const images = [];
                 for (let i = 0; i < prompts.length; i++) {
                     setLoadingMessage(`Gerando imagem de estilo (${i + 1} de ${prompts.length})...`);
-                    await new Promise(resolve => setTimeout(resolve, 15000)); 
+                    await new Promise(resolve => setTimeout(resolve, 3000)); 
                     const img = await generateImage(prompts[i], 'moodboard');
                     images.push(`data:image/png;base64,${img}`);
                 }
@@ -361,9 +383,29 @@ function App() {
             setBrandboardData(finalData);
             setStepTitle('6. Estratégia de Canais');
             setCurrentStep('CONFIRM_STEP');
+
         } else if (currentPart === 4) { 
             setIsStreaming(false);
             setLoadingMessage('Finalizando...');
+
+            if (updatedData.personas) {
+                const personas = updatedData.personas;
+                const images = [];
+                for (let i = 0; i < personas.length; i++) {
+                    if (personas[i].imagePrompt) {
+                        setLoadingMessage(`Gerando retrato da persona ${i + 1}...`);
+                        try {
+                            const img = await generateImage(personas[i].imagePrompt, 'persona');
+                            images.push(`data:image/png;base64,${img}`);
+                        } catch(e) {
+                             images.push(''); // placeholder
+                             console.error("Failed persona image", e);
+                        }
+                    }
+                }
+                setPersonaImages(images);
+            }
+
             if (!generatedLogo && !validationData?.uploadedLogoAnalysis && finalData.part3?.logo?.prompt) {
                 setLoadingMessage('Gerando logotipo final...');
                 await new Promise(resolve => setTimeout(resolve, 2000));
@@ -512,6 +554,8 @@ function App() {
                   validationData={validationData!} 
                   generatedLogo={generatedLogo}
                   photographyImages={photographyImages}
+                  archetypeImage={archetypeImage}
+                  personaImages={personaImages}
                   isEditable={true}
                 />
             </div>
@@ -523,26 +567,25 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen transition-colors duration-500 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-200 font-['Poppins',_sans_serif]">
+    <div className="min-h-screen transition-colors duration-500 bg-white dark:bg-brand-dark text-gray-900 dark:text-gray-100 font-sans">
       {['GENERATING', 'VALIDATING'].includes(currentStep) && <LoadingOverlay message={loadingMessage} streamingText={isStreaming ? streamingText : undefined} />}
       
       {(currentStep !== 'HOME' && currentStep !== 'FINAL_DISPLAY') && (
-        <header className="pt-6 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 border-b border-gray-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
+        <header className="pt-6 px-4 sm:px-8 bg-white/90 dark:bg-brand-dark/90 backdrop-blur-md sticky top-0 z-40 border-b border-gray-100 dark:border-white/5 shadow-sm transition-colors duration-300">
           <div className="max-w-7xl mx-auto">
               <div className="grid grid-cols-3 items-center mb-4">
                   <div className="justify-self-start">
-                    {/* Placeholder for back button or other left-aligned items */}
                   </div>
                    <div className="flex items-center justify-center space-x-3 overflow-hidden cursor-pointer" onClick={() => resetState()}>
                       <AppLogo />
-                      <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-slate-100 whitespace-nowrap font-['Playfair_Display',_serif]">
+                      <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-white whitespace-nowrap font-display">
                           Marketingboard
                       </h1>
                   </div>
                    <div className="flex items-center gap-4 justify-self-end">
                     <button 
                       onClick={toggleTheme} 
-                      className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="p-2 rounded-full bg-gray-100 dark:bg-brand-surface hover:bg-gray-200 dark:hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary"
                       title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
                     >
                       {theme === 'dark' ? <SunIcon /> : <MoonIcon />}

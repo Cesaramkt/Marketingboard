@@ -1,7 +1,7 @@
 import React from 'react';
 
 const CheckIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={4} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
     </svg>
 );
@@ -16,15 +16,15 @@ export const Stepper: React.FC<StepperProps> = ({ steps, currentStepIndex }) => 
   const progressPercentage = (currentStepIndex / (steps.length - 1)) * 100;
 
   return (
-    <div className="w-full py-4">
+    <div className="w-full py-6">
       <div className="relative flex items-center justify-between w-full">
         
         {/* Background Line (Gray) */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-300 dark:bg-slate-700 rounded-full -z-10 transition-colors duration-300" />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-[2px] bg-gray-200 dark:bg-white/10 rounded-full -z-10" />
         
-        {/* Active Progress Line (Gradient) */}
+        {/* Active Progress Line (Brand Color) */}
         <div 
-            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-purple-600 to-violet-400 rounded-full -z-0 transition-all duration-500 ease-out"
+            className="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] bg-brand-primary rounded-full -z-0 transition-all duration-500 ease-out"
             style={{ width: `${progressPercentage}%` }}
         />
 
@@ -41,31 +41,31 @@ export const Stepper: React.FC<StepperProps> = ({ steps, currentStepIndex }) => 
                 className={`
                     flex items-center justify-center rounded-full transition-all duration-500 border-2
                     ${isCompleted 
-                        ? 'w-8 h-8 bg-violet-600 border-violet-600 shadow-lg shadow-violet-900/50 scale-100' 
+                        ? 'w-8 h-8 bg-brand-primary border-brand-primary shadow-[0_0_10px_rgba(177,242,14,0.4)] scale-100' 
                         : isCurrent 
-                            ? 'w-10 h-10 bg-white dark:bg-slate-900 border-violet-500 dark:border-violet-400 shadow-[0_0_15px_rgba(167,139,250,0.5)] scale-110' 
-                            : 'w-8 h-8 bg-gray-100 dark:bg-slate-800 border-gray-300 dark:border-slate-600 scale-90'
+                            ? 'w-10 h-10 bg-white dark:bg-brand-dark border-brand-primary shadow-[0_0_15px_rgba(177,242,14,0.3)] scale-110' 
+                            : 'w-8 h-8 bg-gray-100 dark:bg-brand-surface border-gray-300 dark:border-white/20 scale-90'
                     }
                 `}
               >
                 {isCompleted ? (
-                  <CheckIcon className="w-4 h-4 text-white animate-appear" />
+                  <CheckIcon className="w-4 h-4 text-black animate-appear" />
                 ) : isCurrent ? (
-                  <span className="w-2.5 h-2.5 bg-violet-500 dark:bg-violet-400 rounded-full animate-pulse" />
+                  <span className="w-3 h-3 bg-brand-primary rounded-full animate-pulse" />
                 ) : (
-                  <span className="w-2 h-2 bg-gray-400 dark:bg-slate-600 rounded-full" />
+                  <span className="w-2 h-2 bg-gray-400 dark:bg-white/20 rounded-full" />
                 )}
               </div>
 
               {/* Step Label */}
               <span 
                 className={`
-                    absolute top-12 text-xs font-medium tracking-wide whitespace-nowrap transition-all duration-300
+                    absolute top-14 text-xs font-semibold tracking-wide whitespace-nowrap transition-all duration-300
                     ${isCurrent 
-                        ? 'text-violet-700 dark:text-violet-300 font-bold -translate-y-1 scale-110' 
+                        ? 'text-brand-primary -translate-y-1 scale-105' 
                         : isCompleted 
-                            ? 'text-gray-500 dark:text-slate-400' 
-                            : 'text-gray-400 dark:text-slate-600'
+                            ? 'text-gray-500 dark:text-gray-400' 
+                            : 'text-gray-300 dark:text-white/20'
                     }
                 `}
               >

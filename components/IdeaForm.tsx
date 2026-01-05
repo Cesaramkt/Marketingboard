@@ -43,24 +43,24 @@ export const IdeaForm: React.FC<IdeaFormProps> = ({ onSubmit, isLoading, onBack 
     return (
         <div className="grid md:grid-cols-2 min-h-[calc(100vh-140px)]">
             {/* Left Column: Form */}
-            <div className="flex flex-col justify-center p-8 sm:p-16 bg-white dark:bg-slate-900">
+            <div className="flex flex-col justify-center p-8 sm:p-16 bg-white dark:bg-brand-dark">
                 <div className="w-full max-w-md mx-auto">
-                    <button onClick={onBack} className="flex items-center text-sm text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 mb-8 group">
+                    <button onClick={onBack} className="flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-8 group transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                         Voltar
                     </button>
-                    <h2 className="text-5xl font-bold text-gray-900 dark:text-slate-100 tracking-tight font-['Playfair_Display',_serif]">Vamos dar vida à sua ideia.</h2>
-                    <p className="mt-4 text-gray-600 dark:text-slate-400">Preencha os campos para a IA criar um conceito de marca inicial para você.</p>
-                    <form onSubmit={handleSubmit} className="mt-12 space-y-8">
+                    <h2 className="text-5xl font-bold text-gray-900 dark:text-white tracking-tight font-display mb-4">Sua ideia. Real.</h2>
+                    <p className="text-gray-600 dark:text-gray-400 mb-12">Preencha os campos para a IA estruturar o conceito do seu negócio.</p>
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <input 
                             name="name"
                             type="text" 
                             value={formData.name} 
                             onChange={handleChange} 
                             placeholder="Nome da Ideia ou Marca *" 
-                            className="w-full bg-transparent text-lg text-gray-900 dark:text-slate-100 placeholder-gray-400 border-0 border-b-2 border-gray-300 dark:border-slate-700 py-2 focus:outline-none focus:ring-0 focus:border-purple-500 transition-colors duration-300 disabled:opacity-50"
+                            className="w-full bg-gray-50 dark:bg-brand-surface text-gray-900 dark:text-white placeholder-gray-400 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all duration-300 disabled:opacity-50"
                             required 
                             disabled={isLoading}
                         />
@@ -69,8 +69,8 @@ export const IdeaForm: React.FC<IdeaFormProps> = ({ onSubmit, isLoading, onBack 
                             value={formData.description} 
                             onChange={handleChange}
                             placeholder="Descreva sua ideia em poucas frases *" 
-                            rows={2}
-                            className="w-full bg-transparent text-lg text-gray-900 dark:text-slate-100 placeholder-gray-400 border-0 border-b-2 border-gray-300 dark:border-slate-700 py-2 focus:outline-none focus:ring-0 focus:border-purple-500 transition-colors duration-300 disabled:opacity-50"
+                            rows={3}
+                            className="w-full bg-gray-50 dark:bg-brand-surface text-gray-900 dark:text-white placeholder-gray-400 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all duration-300 disabled:opacity-50"
                             required 
                             disabled={isLoading}
                         />
@@ -80,7 +80,7 @@ export const IdeaForm: React.FC<IdeaFormProps> = ({ onSubmit, isLoading, onBack 
                             value={formData.segment} 
                             onChange={handleChange} 
                             placeholder="Segmento de mercado? *" 
-                            className="w-full bg-transparent text-lg text-gray-900 dark:text-slate-100 placeholder-gray-400 border-0 border-b-2 border-gray-300 dark:border-slate-700 py-2 focus:outline-none focus:ring-0 focus:border-purple-500 transition-colors duration-300 disabled:opacity-50"
+                            className="w-full bg-gray-50 dark:bg-brand-surface text-gray-900 dark:text-white placeholder-gray-400 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all duration-300 disabled:opacity-50"
                             required 
                             disabled={isLoading}
                         />
@@ -90,8 +90,8 @@ export const IdeaForm: React.FC<IdeaFormProps> = ({ onSubmit, isLoading, onBack 
                                 type="text" 
                                 value={formData.city} 
                                 onChange={handleChange} 
-                                placeholder="Cidade (opcional)" 
-                                className="w-full bg-transparent text-lg text-gray-900 dark:text-slate-100 placeholder-gray-400 border-0 border-b-2 border-gray-300 dark:border-slate-700 py-2 focus:outline-none focus:ring-0 focus:border-purple-500 transition-colors duration-300 disabled:opacity-50"
+                                placeholder="Cidade" 
+                                className="w-full bg-gray-50 dark:bg-brand-surface text-gray-900 dark:text-white placeholder-gray-400 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all duration-300 disabled:opacity-50"
                                 disabled={isLoading}
                             />
                             <input 
@@ -99,8 +99,8 @@ export const IdeaForm: React.FC<IdeaFormProps> = ({ onSubmit, isLoading, onBack 
                                 type="text" 
                                 value={formData.country} 
                                 onChange={handleChange} 
-                                placeholder="País (opcional)" 
-                                className="w-full bg-transparent text-lg text-gray-900 dark:text-slate-100 placeholder-gray-400 border-0 border-b-2 border-gray-300 dark:border-slate-700 py-2 focus:outline-none focus:ring-0 focus:border-purple-500 transition-colors duration-300 disabled:opacity-50"
+                                placeholder="País" 
+                                className="w-full bg-gray-50 dark:bg-brand-surface text-gray-900 dark:text-white placeholder-gray-400 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all duration-300 disabled:opacity-50"
                                 disabled={isLoading}
                             />
                         </div>
@@ -110,24 +110,30 @@ export const IdeaForm: React.FC<IdeaFormProps> = ({ onSubmit, isLoading, onBack 
                             onChange={handleChange}
                             placeholder="Concorrentes ou inspirações (opcional)" 
                             rows={2}
-                            className="w-full bg-transparent text-lg text-gray-900 dark:text-slate-100 placeholder-gray-400 border-0 border-b-2 border-gray-300 dark:border-slate-700 py-2 focus:outline-none focus:ring-0 focus:border-purple-500 transition-colors duration-300 disabled:opacity-50"
+                            className="w-full bg-gray-50 dark:bg-brand-surface text-gray-900 dark:text-white placeholder-gray-400 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all duration-300 disabled:opacity-50"
                             disabled={isLoading}
                         />
-                        <select
-                            name="investment"
-                            value={formData.investment}
-                            onChange={handleChange}
-                            disabled={isLoading}
-                            className="w-full bg-transparent text-lg text-gray-900 dark:text-slate-100 border-0 border-b-2 border-gray-300 dark:border-slate-700 py-2 focus:outline-none focus:ring-0 focus:border-purple-500 transition-colors duration-300 disabled:opacity-50"
-                            required
-                        >
-                            <option value="Até R$5.000">Investimento: Até R$5.000</option>
-                            <option value="Entre R$5.000 e R$20.000">Investimento: Entre R$5.000 e R$20.000</option>
-                            <option value="Entre R$20.000 e R$100.000">Investimento: Entre R$20.000 e R$100.000</option>
-                            <option value="Acima de R$100.000">Investimento: Acima de R$100.000</option>
-                        </select>
+                        <div className="relative">
+                            <select
+                                name="investment"
+                                value={formData.investment}
+                                onChange={handleChange}
+                                disabled={isLoading}
+                                className="w-full bg-gray-50 dark:bg-brand-surface text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all duration-300 disabled:opacity-50"
+                                required
+                            >
+                                <option value="Até R$5.000">Investimento: Até R$5.000</option>
+                                <option value="Entre R$5.000 e R$20.000">Investimento: Entre R$5.000 e R$20.000</option>
+                                <option value="Entre R$20.000 e R$100.000">Investimento: Entre R$20.000 e R$100.000</option>
+                                <option value="Acima de R$100.000">Investimento: Acima de R$100.000</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+
                         <div className="pt-6">
-                            <button type="submit" disabled={isSubmitDisabled} className="bg-gray-900 dark:bg-white text-white dark:text-black font-semibold py-3 px-8 rounded-full shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center">
+                            <button type="submit" disabled={isSubmitDisabled} className="w-full bg-brand-primary hover:bg-brand-hover text-black font-bold py-4 px-8 rounded-pill shadow-lg hover:shadow-glow transition-all duration-300 ease-in-out transform hover:scale-[1.02] disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none flex items-center justify-center">
                                 {isLoading ? 'Criando Conceito...' : 'Continuar'}
                             </button>
                         </div>

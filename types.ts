@@ -1,3 +1,4 @@
+
 export interface Source {
   uri: string;
   title: string;
@@ -21,6 +22,20 @@ export interface LogoAnalysis {
   };
 }
 
+export interface InstagramStats {
+  handle: string;
+  followers: string;
+  following?: string;
+  posts: string;
+  bio: string;
+  profileUrl: string;
+  postTypes?: string; // Ex: "Fotos, Vídeos, Carrosséis"
+  recentLikesAvg?: string; // Média de likes
+  visualStyle?: string; // Descrição contextual
+  highlights?: string;
+  linkInBio?: string;
+}
+
 export interface ValidationData {
   companyName: string;
   description: string;
@@ -29,6 +44,7 @@ export interface ValidationData {
   websiteUrl?: string;
   reviewsSummary?: string;
   socialMediaLinks?: Array<{ platform: string; url: string; }>;
+  instagramStats?: InstagramStats; // Novo campo específico
   companyAnalysis?: string; // Usado para Diagnóstico (Empresa Existente) e Briefing (Nova Ideia)
   companyAnalysisSources?: Source[];
   sources?: Source[];
@@ -65,6 +81,7 @@ export interface BrandboardData {
     archetypes: {
       primary: string;
       secondary?: string;
+      imagePrompt?: string;
     };
     audienceAndPositioning: {
       targetAudience: string;
@@ -119,6 +136,7 @@ export interface BrandboardData {
       goals: string;
       informationSources: string;
       howWeHelp: string;
+      imagePrompt?: string;
     }>;
     customerJourney: {
       discovery: { description: string; goal: string };
@@ -134,13 +152,12 @@ export interface BrandboardData {
     }>;
   };
 }
-// FIX: Added User interface to resolve import error in authService.
+
 export interface User {
   id: string;
   email?: string;
 }
 
-// FIX: Added SavedProject interface to resolve import errors in ProjectList and supabaseService.
 export interface SavedProject {
   id: string;
   created_at: string;

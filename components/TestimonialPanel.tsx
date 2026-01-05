@@ -36,18 +36,23 @@ export const TestimonialPanel: React.FC = () => {
     const currentTestimonial = testimonials[currentIndex];
 
     return (
-        <div className="hidden md:flex flex-col justify-center items-center bg-gray-900 dark:bg-black text-white p-12 lg:p-20">
+        <div className="hidden md:flex flex-col justify-center items-center bg-gray-100 dark:bg-black border-l border-gray-200 dark:border-white/10 text-gray-900 dark:text-white p-12 lg:p-20">
             <div className="w-full max-w-sm">
                  <div key={currentIndex} className="animate-fade-in">
-                    <p className="text-2xl lg:text-3xl font-['Playfair_Display',_serif] italic text-slate-100">
+                    <p className="text-2xl lg:text-3xl font-display font-medium leading-relaxed tracking-tight">
                         "{currentTestimonial.quote}"
                     </p>
-                    <p className="mt-6 font-semibold text-purple-300">
-                        {currentTestimonial.author}
-                    </p>
-                    <p className="text-sm text-slate-400">
-                        {currentTestimonial.role}
-                    </p>
+                    <div className="mt-8 flex items-center gap-4">
+                        <div className="h-10 w-1 bg-brand-primary rounded-full"></div>
+                        <div>
+                            <p className="font-bold text-lg text-gray-900 dark:text-white">
+                                {currentTestimonial.author}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {currentTestimonial.role}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
              <style>{`
